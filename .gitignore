@@ -32,6 +32,14 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# local uploaded files
+/storage/
+
+# Local reference files
+/TenderPilot AI frontend screens.png
+/TenderPilot_AI_20-Day_Developer_Assignment.docx.md
 
 # vercel
 .vercel
