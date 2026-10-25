@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: tenderpilot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tenderpilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - tenderpilot-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  tenderpilot-postgres-data:

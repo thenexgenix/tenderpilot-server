@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TenderStatus {
+  DRAFT
+  PROCESSING
+  ANALYZED
+  ATTENTION_REQUIRED
+  PROCESSING_FAILED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  tenders Tender[]
+}
+
+model Tender {
+  id         String       @id @default(cuid())
+  ownerId    String
+  title      String
+  issuerName String
+  reference  String?
+  deadlineAt DateTime?
+  notes      String?
+  status     TenderStatus @default(DRAFT)
+  stage      String?
+  errorCode  String?
+  createdAt  DateTime     @default(now())
+  deletedAt  DateTime?
+
+  owner User @relation(fields: [ownerId], references: [id])
+
+  @@index([ownerId])
+}
