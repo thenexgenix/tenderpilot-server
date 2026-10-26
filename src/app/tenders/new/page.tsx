@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { Button, Input, Select } from "@/components/ui";
+import { Button, Input} from "@/components/ui";
 
 export default function NewTenderPage() {
   const [fileName, setFileName] = useState("");
