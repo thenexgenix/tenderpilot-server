@@ -2,6 +2,7 @@
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import Image from "next/image";
 
 const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: "⌂" },
@@ -13,9 +14,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <aside className="hidden w-64 shrink-0 flex-col bg-[#0f2a47] text-white lg:flex">
+      <aside className="hidden w-64 shrink-0 flex-col bg-[#0f2a47] bg-[url('/images/sidebar-bg.png')] bg-[length:100%_100%] bg-top bg-no-repeat text-white lg:flex">
         <div className="flex h-20 items-center gap-3 border-b border-white/10 px-7">
-          <div className="text-3xl text-blue-400">✦</div>
+          <Image
+            src="/images/tenderpilot-symbol.png"
+            alt="TenderPilot AI symbol"
+            width={40}
+            height={32}
+            className="object-contain"
+          />
           <span className="text-xl font-bold">
             TenderPilot <span className="text-blue-400">AI</span>
           </span>
@@ -40,16 +47,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-
-        <div className="mt-auto p-5">
-          <div className="rounded-2xl bg-blue-600/20 p-4 text-sm text-blue-100">
-            <div className="mb-3 text-3xl">🤖</div>
-            <p className="font-semibold">Work smarter with AI</p>
-            <p className="mt-1 text-xs text-blue-100/70">
-              Find requirements and draft proposals faster.
-            </p>
-          </div>
-        </div>
       </aside>
 
       <div className="min-w-0 flex-1">
