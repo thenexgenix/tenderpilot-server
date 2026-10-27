@@ -1,46 +1,294 @@
 "use client";
 
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { requirements } from "@/components/mock-data";
-import { Badge, Banner, Button, Select, Table } from "@/components/ui";
+import {
+  Badge,
+  Banner,
+  Button,
+  EmptyState,
+  Skeleton,
+} from "@/components/ui";
+
+type TenderStatus =
+  | "DRAFT"
+  | "PROCESSING"
+  | "ANALYZED"
+  | "ATTENTION_REQUIRED"
+  | "PROCESSING_FAILED";
+
+type Tender = {
+  id: string;
+  title: string;
+  issuerName: string;
+  reference: string | null;
+  deadlineAt: string | null;
+  notes: string | null;
+  status: TenderStatus;
+  stage: string | null;
+  errorCode: string | null;
+  createdAt: string;
+};
+
+type TenderResponse = {
+  data?: Tender;
+  error?: {
+    message?: string;
+  };
+};
 
 const tabs = ["Requirements", "Checklist", "Draft", "Export"];
 
-export default function TenderDetailsPage() {
+function formatDate(value: string | null) {
+  if (!value) {
+    return "No deadline";
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function statusLabel(status: TenderStatus) {
+  if (status === "ATTENTION_REQUIRED") {
+    return "ATTENTION REQUIRED";
+  }
+
+  if (status === "PROCESSING_FAILED") {
+    return "PROCESSING FAILED";
+  }
+
+  return status;
+}
+
+function statusVariant(
+  status: TenderStatus,
+): "blue" | "green" | "amber" | "red" | "gray" {
+  if (status === "ANALYZED") {
+    return "green";
+  }
+
+  if (status === "PROCESSING") {
+    return "blue";
+  }
+
+  if (status === "ATTENTION_REQUIRED") {
+    return "amber";
+  }
+
+  if (status === "PROCESSING_FAILED") {
+    return "red";
+  }
+
+  return "gray";
+}
+
+function StatusBadge({ status }: { status: TenderStatus }) {
+  return (
+    <Badge variant={statusVariant(status)}>{statusLabel(status)}</Badge>
+  );
+}
+
+function TabPlaceholder({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <section className="space-y-5">
+      <EmptyState title={title} description={description} />
+    </section>
+  );
+}
+
+function TenderDetailsContent() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const tenderId = params.id;
+
+  const [tender, setTender] = useState<Tender | null>(null);
   const [activeTab, setActiveTab] = useState("Requirements");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const loadTender = useCallback(async () => {
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch(`/api/tenders/${tenderId}`, {
+        cache: "no-store",
+      });
+
+      const result = (await response.json()) as TenderResponse;
+
+      if (!response.ok) {
+        setErrorMessage(
+          result.error?.message ?? "Tender not found.",
+        );
+        return;
+      }
+
+      setTender(result.data ?? null);
+    } catch {
+      setErrorMessage(
+        "Unable to connect to the server. Please try again.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [tenderId]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadTender();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [loadTender]);
+  async function handleDelete() {
+    const confirmed = window.confirm(
+      "Delete this tender? It will be removed from your dashboard.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch(`/api/tenders/${tenderId}`, {
+        method: "DELETE",
+      });
+
+      const result = (await response.json()) as TenderResponse;
+
+      if (!response.ok) {
+        setErrorMessage(
+          result.error?.message ?? "Unable to delete the tender.",
+        );
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setErrorMessage(
+        "Unable to connect to the server. Please try again.",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <AppShell>
+        <div className="space-y-6">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-56 w-full" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!tender) {
+    return (
+      <AppShell>
+        <div className="mx-auto max-w-2xl space-y-5">
+          <Banner variant="error">
+            {errorMessage || "Tender not found."}
+          </Banner>
+
+          <Link
+            href="/dashboard"
+            className="inline-flex min-h-11 items-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            Back to dashboard
+          </Link>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
       <div className="space-y-6">
-        <Link href="/dashboard" className="text-sm font-medium text-blue-600">
+        <Link
+          href="/dashboard"
+          className="text-sm font-medium text-blue-600"
+        >
           ← Tenders
         </Link>
 
+        {errorMessage && <Banner variant="error">{errorMessage}</Banner>}
+
         <section className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm text-slate-500">TP-2024-0321</p>
+            <p className="text-sm text-slate-500">
+              {tender.reference || "No reference"}
+            </p>
+
             <h1 className="mt-1 text-3xl font-bold text-[#0f2a47]">
-              Network upgrade supply
+              {tender.title}
             </h1>
+
             <p className="mt-2 text-sm text-slate-500">
-              Dhaka WASA · Deadline: 28 May 2024, 10:00 AM
+              {tender.issuerName} · Deadline:{" "}
+              {formatDate(tender.deadlineAt)}
             </p>
           </div>
-          <Badge variant="green">ANALYZED</Badge>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusBadge status={tender.status} />
+
+            <Button
+              type="button"
+              variant="danger"
+              onClick={() => void handleDelete()}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete tender"}
+            </Button>
+          </div>
         </section>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <p className="text-xs font-semibold uppercase text-slate-400">
+            Notes
+          </p>
+
+          <p className="mt-2 text-sm text-slate-600">
+            {tender.notes || "No notes added."}
+          </p>
+
+          <p className="mt-4 text-xs text-slate-400">
+            Created: {formatDate(tender.createdAt)}
+          </p>
+        </div>
 
         <div className="flex gap-1 overflow-x-auto border-b border-slate-200">
           {tabs.map((tab) => (
             <button
               key={tab}
+              type="button"
               onClick={() => setActiveTab(tab)}
-              className={`min-h-12 border-b-2 px-4 text-sm font-semibold whitespace-nowrap ${
-                activeTab === tab
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
-              }`}
+              className={`min-h-12 whitespace-nowrap border-b-2 px-4 text-sm font-semibold ${activeTab === tab
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
             >
               {tab}
             </button>
@@ -48,189 +296,59 @@ export default function TenderDetailsPage() {
         </div>
 
         <Banner variant="warning">
-          AI results can be wrong. Check important items against the original
-          page.
+          AI results can be wrong. Check important items against the
+          original tender document.
         </Banner>
 
-        {activeTab === "Requirements" && <RequirementsTab />}
-        {activeTab === "Checklist" && <ChecklistTab />}
-        {activeTab === "Draft" && <DraftTab />}
-        {activeTab === "Export" && <ExportTab />}
+        {activeTab === "Requirements" && (
+          <TabPlaceholder
+            title="No requirements yet"
+            description="PDF upload and text extraction will be implemented in the next Day 6–8 stages."
+          />
+        )}
+
+        {activeTab === "Checklist" && (
+          <TabPlaceholder
+            title="Checklist is not available yet"
+            description="The checklist will be created after requirements are extracted."
+          />
+        )}
+
+        {activeTab === "Draft" && (
+          <TabPlaceholder
+            title="Draft generation is not available yet"
+            description="Draft generation will be implemented after the requirements workflow."
+          />
+        )}
+
+        {activeTab === "Export" && (
+          <TabPlaceholder
+            title="Export is not available yet"
+            description="DOCX export will be implemented after draft editing."
+          />
+        )}
       </div>
     </AppShell>
   );
 }
 
-function RequirementsTab() {
+function TenderDetailsLoading() {
   return (
-    <section className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <FactCard
-          label="Deadline"
-          value="28 May 2024"
-          source="Page 4 · VERIFIED"
-        />
-        <FactCard
-          label="Bid security"
-          value="NOT FOUND"
-          source="Review original PDF"
-        />
-        <FactCard
-          label="Validity"
-          value="NOT FOUND"
-          source="Review original PDF"
-        />
-        <FactCard
-          label="Submission method"
-          value="NOT FOUND"
-          source="Review original PDF"
-        />
+    <AppShell>
+      <div className="space-y-6">
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-56 w-full" />
       </div>
-
-      <div className="flex flex-wrap gap-3">
-        <Select className="w-auto min-w-40" defaultValue="all">
-          <option value="all">All categories</option>
-        </Select>
-        <Select className="w-auto min-w-40" defaultValue="all">
-          <option value="all">All obligations</option>
-        </Select>
-        <Select className="w-auto min-w-40" defaultValue="all">
-          <option value="all">All verification</option>
-        </Select>
-        <Button variant="secondary">+ Add manual requirement</Button>
-      </div>
-
-      <div className="hidden md:block">
-        <Table>
-          <thead className="border-b border-slate-100 bg-slate-50 text-xs text-slate-500 uppercase">
-            <tr>
-              <th className="px-4 py-3">ID</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Requirement</th>
-              <th className="px-4 py-3">Page</th>
-              <th className="px-4 py-3">Verification</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requirements.map((requirement) => (
-              <tr
-                key={requirement.id}
-                className="border-b border-slate-100 last:border-0"
-              >
-                <td className="px-4 py-4 font-mono text-xs">
-                  {requirement.id}
-                </td>
-                <td className="px-4 py-4 text-xs font-semibold text-slate-500">
-                  {requirement.category}
-                </td>
-                <td className="px-4 py-4 text-slate-700">{requirement.text}</td>
-                <td className="px-4 py-4 text-slate-600">{requirement.page}</td>
-                <td className="px-4 py-4">
-                  <Badge
-                    variant={
-                      requirement.verification === "VERIFIED"
-                        ? "green"
-                        : "amber"
-                    }
-                  >
-                    {requirement.verification}
-                  </Badge>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </div>
-
-      <div className="space-y-3 md:hidden">
-        {requirements.map((requirement) => (
-          <div
-            key={requirement.id}
-            className="rounded-xl border border-slate-200 bg-white p-4"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <span className="font-mono text-xs text-slate-500">
-                {requirement.id}
-              </span>
-              <Badge
-                variant={
-                  requirement.verification === "VERIFIED" ? "green" : "amber"
-                }
-              >
-                {requirement.verification}
-              </Badge>
-            </div>
-            <p className="mt-3 font-semibold text-slate-800">
-              {requirement.text}
-            </p>
-            <p className="mt-2 text-xs text-slate-500">
-              {requirement.category} · Page {requirement.page}
-            </p>
-          </div>
-        ))}
-      </div>
-    </section>
+    </AppShell>
   );
 }
 
-function FactCard({
-  label,
-  value,
-  source,
-}: {
-  label: string;
-  value: string;
-  source: string;
-}) {
+export default function TenderDetailsPage() {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <p className="text-xs font-semibold text-slate-400 uppercase">{label}</p>
-      <p className="mt-2 font-semibold text-slate-800">{value}</p>
-      <p className="mt-1 text-xs text-slate-500">{source}</p>
-    </div>
-  );
-}
-
-function ChecklistTab() {
-  return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6">
-      <h2 className="text-xl font-bold text-[#0f2a47]">Compliance checklist</h2>
-      <p className="mt-2 text-sm text-slate-500">
-        MOCK DATA
-      </p>
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <FactCard label="Not reviewed" value="2" source="Requirements" />
-        <FactCard label="Satisfied" value="1" source="Requirements" />
-        <FactCard label="Needs clarification" value="0" source="Requirements" />
-      </div>
-    </section>
-  );
-}
-
-function DraftTab() {
-  return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6">
-      <h2 className="text-xl font-bold text-[#0f2a47]">Proposal draft</h2>
-      <p className="mt-2 text-sm text-slate-500">
-        MOCK DATA
-      </p>
-      <Button className="mt-6">Generate draft</Button>
-    </section>
-  );
-}
-
-function ExportTab() {
-  return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6">
-      <h2 className="text-xl font-bold text-[#0f2a47]">Export</h2>
-      <p className="mt-2 text-sm text-slate-500">
-        MOCK DATA
-      </p>
-      <label className="mt-6 flex items-start gap-3 text-sm text-slate-700">
-        <input type="checkbox" className="mt-1 h-4 w-4" />I have reviewed this
-        against the original tender document.
-      </label>
-      <Button className="mt-5">Download DOCX</Button>
-    </section>
+    <Suspense fallback={<TenderDetailsLoading />}>
+      <TenderDetailsContent />
+    </Suspense>
   );
 }
