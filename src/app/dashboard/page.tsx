@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import {
   Badge,
@@ -83,9 +84,7 @@ function statusVariant(
 }
 
 function StatusBadge({ status }: { status: TenderStatus }) {
-  return (
-    <Badge variant={statusVariant(status)}>{statusLabel(status)}</Badge>
-  );
+  return <Badge variant={statusVariant(status)}>{statusLabel(status)}</Badge>;
 }
 
 function StatCard({
@@ -134,7 +133,8 @@ function DashboardSkeleton() {
   );
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
+  const searchParams = useSearchParams();
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -159,9 +159,7 @@ export default function DashboardPage() {
 
       setTenders(result.data ?? []);
     } catch {
-      setErrorMessage(
-        "Unable to connect to the server. Please try again.",
-      );
+      setErrorMessage("Unable to connect to the server. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -183,25 +181,31 @@ export default function DashboardPage() {
       tender.status === "PROCESSING_FAILED",
   ).length;
 
-  const drafts = tenders.filter(
-    (tender) => tender.status === "DRAFT",
-  ).length;
+  const drafts = tenders.filter((tender) => tender.status === "DRAFT").length;
+  const searchTerm = (searchParams.get("search") ?? "").trim().toLowerCase();
+  const visibleTenders = searchTerm
+    ? tenders.filter((tender) =>
+        [tender.title, tender.issuerName, tender.reference ?? ""].some(
+          (value) => value.toLowerCase().includes(searchTerm),
+        ),
+      )
+    : tenders;
 
   return (
     <AppShell>
       <div className="space-y-7">
         <section>
-          <p className="text-sm font-medium text-blue-600">
+          <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-bold tracking-[0.16em] text-blue-700 uppercase shadow-sm">
             Tender workspace
-          </p>
+          </div>
 
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#0f2a47] lg:text-4xl">
             Good morning, review with confidence
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm text-slate-500">
-            AI suggestions highlight key insights. Always verify details
-            against the original tender document.
+            AI suggestions highlight key insights. Always verify details against
+            the original tender document.
           </p>
         </section>
 
@@ -233,9 +237,7 @@ export default function DashboardPage() {
 
         <section className="rounded-2xl border border-slate-200 bg-white">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-5">
-            <h2 className="text-lg font-bold text-[#0f2a47]">
-              Your tenders
-            </h2>
+            <h2 className="text-lg font-bold text-[#0f2a47]">Your tenders</h2>
           </div>
 
           <div className="p-5">
@@ -266,45 +268,49 @@ export default function DashboardPage() {
               />
             )}
 
-            {!errorMessage && !isLoading && tenders.length > 0 && (
+            {!errorMessage &&
+              !isLoading &&
+              tenders.length > 0 &&
+              visibleTenders.length === 0 && (
+                <EmptyState
+                  title="No matching tenders"
+                  description="Try a different title, issuer, or reference keyword."
+                />
+              )}
+
+            {!errorMessage && !isLoading && visibleTenders.length > 0 && (
               <>
                 <div className="hidden md:block">
                   <Table>
-                    <thead className="border-b border-slate-100 bg-slate-50 text-xs uppercase text-slate-500">
+                    <thead className="border-b border-slate-100 bg-slate-50 text-xs text-slate-500 uppercase">
                       <tr>
                         <th className="px-4 py-3 font-semibold">
                           Tender title
                         </th>
-                        <th className="px-4 py-3 font-semibold">
-                          Issuer
-                        </th>
-                        <th className="px-4 py-3 font-semibold">
-                          Deadline
-                        </th>
-                        <th className="px-4 py-3 font-semibold">
-                          Status
-                        </th>
-                        <th className="px-4 py-3 font-semibold">
-                          Created
-                        </th>
+                        <th className="px-4 py-3 font-semibold">Issuer</th>
+                        <th className="px-4 py-3 font-semibold">Deadline</th>
+                        <th className="px-4 py-3 font-semibold">Status</th>
+                        <th className="px-4 py-3 font-semibold">Created</th>
                       </tr>
                     </thead>
 
                     <tbody>
-                      {tenders.map((tender) => (
+                      {visibleTenders.map((tender) => (
                         <tr
                           key={tender.id}
-                          className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                          className="group cursor-pointer border-b border-slate-100 transition duration-200 last:border-0 hover:bg-blue-50/60"
                         >
                           <td className="px-4 py-4">
                             <Link
                               href={`/tenders/${tender.id}`}
                               className="flex items-center gap-3"
                             >
-                              <span className="text-xl">📄</span>
+                              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-xl transition duration-200 group-hover:scale-110 group-hover:bg-blue-100 group-hover:shadow-md">
+                                📄
+                              </span>
 
                               <span>
-                                <span className="block font-semibold text-slate-800">
+                                <span className="block font-semibold text-slate-800 transition-colors group-hover:text-blue-700">
                                   {tender.title}
                                 </span>
 
@@ -337,15 +343,15 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="space-y-3 md:hidden">
-                  {tenders.map((tender) => (
+                  {visibleTenders.map((tender) => (
                     <Link
                       key={tender.id}
                       href={`/tenders/${tender.id}`}
-                      className="block rounded-xl border border-slate-200 p-4 hover:bg-slate-50"
+                      className="group block rounded-xl border border-slate-200 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50/60 hover:shadow-md"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="font-semibold text-slate-800">
+                          <p className="font-semibold text-slate-800 transition-colors group-hover:text-blue-700">
                             {tender.title}
                           </p>
 
@@ -370,5 +376,19 @@ export default function DashboardPage() {
         </section>
       </div>
     </AppShell>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <AppShell>
+          <DashboardSkeleton />
+        </AppShell>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   );
 }

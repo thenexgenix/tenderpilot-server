@@ -14,11 +14,13 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const buttonVariants: Record<ButtonVariant, string> = {
-  primary: "bg-blue-600 text-white hover:bg-blue-700",
+  primary:
+    "bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/25",
   secondary:
-    "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-  ghost: "text-slate-600 hover:bg-slate-100",
-  danger: "bg-red-600 text-white hover:bg-red-700",
+    "border border-slate-200 bg-white text-slate-700 shadow-sm hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md",
+  ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+  danger:
+    "bg-red-600 text-white shadow-lg shadow-red-600/20 hover:-translate-y-0.5 hover:bg-red-700 hover:shadow-xl hover:shadow-red-600/25",
 };
 
 export function Button({
@@ -28,7 +30,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${buttonVariants[variant]} ${className}`}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition duration-200 focus-visible:ring-4 focus-visible:ring-blue-200 focus-visible:outline-none active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 ${buttonVariants[variant]} ${className}`}
       {...props}
     />
   );
@@ -105,7 +107,7 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex w-fit items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold leading-5 ring-1 ${badgeVariants[variant]} ${className}`}
+      className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs leading-5 font-semibold whitespace-nowrap ring-1 ${badgeVariants[variant]} ${className}`}
     >
       {children}
     </span>
@@ -211,9 +213,8 @@ export function Toast({
 }) {
   return (
     <div
-      className={`fixed right-5 bottom-5 z-40 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${
-        variant === "success" ? "bg-green-600" : "bg-red-600"
-      }`}
+      className={`fixed right-5 bottom-5 z-40 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${variant === "success" ? "bg-green-600" : "bg-red-600"
+        }`}
     >
       {message}
     </div>

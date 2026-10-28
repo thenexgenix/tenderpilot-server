@@ -4,13 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import {
-  Badge,
-  Banner,
-  Button,
-  EmptyState,
-  Skeleton,
-} from "@/components/ui";
+import { Badge, Banner, Button, EmptyState, Skeleton } from "@/components/ui";
 
 type TenderStatus =
   | "DRAFT"
@@ -87,9 +81,7 @@ function statusVariant(
 }
 
 function StatusBadge({ status }: { status: TenderStatus }) {
-  return (
-    <Badge variant={statusVariant(status)}>{statusLabel(status)}</Badge>
-  );
+  return <Badge variant={statusVariant(status)}>{statusLabel(status)}</Badge>;
 }
 
 function TabPlaceholder({
@@ -129,17 +121,13 @@ function TenderDetailsContent() {
       const result = (await response.json()) as TenderResponse;
 
       if (!response.ok) {
-        setErrorMessage(
-          result.error?.message ?? "Tender not found.",
-        );
+        setErrorMessage(result.error?.message ?? "Tender not found.");
         return;
       }
 
       setTender(result.data ?? null);
     } catch {
-      setErrorMessage(
-        "Unable to connect to the server. Please try again.",
-      );
+      setErrorMessage("Unable to connect to the server. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -183,9 +171,7 @@ function TenderDetailsContent() {
       router.push("/dashboard");
       router.refresh();
     } catch {
-      setErrorMessage(
-        "Unable to connect to the server. Please try again.",
-      );
+      setErrorMessage("Unable to connect to the server. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -208,14 +194,15 @@ function TenderDetailsContent() {
     return (
       <AppShell>
         <div className="mx-auto max-w-2xl space-y-5">
-          <Banner variant="error">
-            {errorMessage || "Tender not found."}
-          </Banner>
+          <Banner variant="error">{errorMessage || "Tender not found."}</Banner>
 
           <Link
             href="/dashboard"
-            className="inline-flex min-h-11 items-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+            className="group inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-600 shadow-sm transition duration-200 hover:-translate-x-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md focus-visible:ring-4 focus-visible:ring-blue-100 focus-visible:outline-none"
           >
+            <span className="transition-transform group-hover:-translate-x-0.5">
+              ←
+            </span>
             Back to dashboard
           </Link>
         </div>
@@ -228,9 +215,12 @@ function TenderDetailsContent() {
       <div className="space-y-6">
         <Link
           href="/dashboard"
-          className="text-sm font-medium text-blue-600"
+          className="group inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-600 shadow-sm transition duration-200 hover:-translate-x-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md focus-visible:ring-4 focus-visible:ring-blue-100 focus-visible:outline-none"
         >
-          ← Tenders
+          <span className="transition-transform group-hover:-translate-x-0.5">
+            ←
+          </span>
+          Back to tenders
         </Link>
 
         {errorMessage && <Banner variant="error">{errorMessage}</Banner>}
@@ -246,8 +236,7 @@ function TenderDetailsContent() {
             </h1>
 
             <p className="mt-2 text-sm text-slate-500">
-              {tender.issuerName} · Deadline:{" "}
-              {formatDate(tender.deadlineAt)}
+              {tender.issuerName} · Deadline: {formatDate(tender.deadlineAt)}
             </p>
           </div>
 
@@ -266,7 +255,7 @@ function TenderDetailsContent() {
         </section>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <p className="text-xs font-semibold uppercase text-slate-400">
+          <p className="text-xs font-semibold text-slate-400 uppercase">
             Notes
           </p>
 
@@ -285,10 +274,11 @@ function TenderDetailsContent() {
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`min-h-12 whitespace-nowrap border-b-2 px-4 text-sm font-semibold ${activeTab === tab
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-                }`}
+              className={`min-h-12 border-b-2 px-4 text-sm font-semibold whitespace-nowrap ${
+                activeTab === tab
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-slate-500 hover:text-slate-800"
+              }`}
             >
               {tab}
             </button>
@@ -296,8 +286,8 @@ function TenderDetailsContent() {
         </div>
 
         <Banner variant="warning">
-          AI results can be wrong. Check important items against the
-          original tender document.
+          AI results can be wrong. Check important items against the original
+          tender document.
         </Banner>
 
         {activeTab === "Requirements" && (

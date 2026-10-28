@@ -1,23 +1,20 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { Banner, Button, Input } from "@/components/ui";
 
 type FieldName =
-  | "title"
-  | "issuerName"
-  | "reference"
-  | "deadlineAt"
-  | "notes";
+  "title" | "issuerName" | "reference" | "deadlineAt" | "notes" | "file";
 
 type CreateTenderResponse = {
   data?: {
     id: string;
   };
   error?: {
+    code?: string;
     message?: string;
     fields?: Partial<Record<FieldName, string[]>>;
   };
@@ -25,40 +22,45 @@ type CreateTenderResponse = {
 
 export default function NewTenderPage() {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
 
+  const [fileName, setFileName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [duplicateWarning, setDuplicateWarning] = useState("");
+  const [allowDuplicate, setAllowDuplicate] = useState(false);
+
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<FieldName, string>>
   >({});
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
+  async function submitForm(form: HTMLFormElement, permitDuplicate: boolean) {
     setIsSubmitting(true);
     setFormError("");
     setFieldErrors({});
 
-    const formData = new FormData(event.currentTarget);
+    if (!permitDuplicate) {
+      setDuplicateWarning("");
+    }
 
-    const payload = {
-      title: String(formData.get("title") ?? ""),
-      issuerName: String(formData.get("issuerName") ?? ""),
-      reference: String(formData.get("reference") ?? ""),
-      deadlineAt: String(formData.get("deadlineAt") ?? ""),
-      notes: String(formData.get("notes") ?? ""),
-    };
+    const formData = new FormData(form);
+    formData.set("allowDuplicate", String(permitDuplicate));
 
     try {
       const response = await fetch("/api/tenders", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       const result = (await response.json()) as CreateTenderResponse;
+
+      if (response.status === 409 && result.error?.code === "DUPLICATE_FILE") {
+        setDuplicateWarning(
+          result.error.message ??
+            "This PDF was already uploaded for your account.",
+        );
+        return;
+      }
 
       if (!response.ok) {
         const fields = result.error?.fields ?? {};
@@ -72,7 +74,7 @@ export default function NewTenderPage() {
         });
 
         setFormError(
-          result.error?.message ?? "Unable to create the tender.",
+          result.error?.message ?? "Unable to upload the tender PDF.",
         );
 
         return;
@@ -83,15 +85,42 @@ export default function NewTenderPage() {
         return;
       }
 
+      form.reset();
+      setFileName("");
+      setAllowDuplicate(false);
+      setDuplicateWarning("");
+      setFormError("");
+      setFieldErrors({});
+
       router.push(`/tenders/${result.data.id}`);
       router.refresh();
     } catch {
-      setFormError(
-        "Unable to connect to the server. Please try again.",
-      );
+      setFormError("Unable to connect to the server. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAllowDuplicate(false);
+    void submitForm(event.currentTarget, false);
+  }
+
+  function handleFileChange(file: File | undefined) {
+    setFileName(file?.name ?? "");
+    setAllowDuplicate(false);
+    setDuplicateWarning("");
+    setFormError("");
+  }
+
+  function handleDuplicateUpload() {
+    if (!formRef.current) {
+      return;
+    }
+
+    setAllowDuplicate(true);
+    void submitForm(formRef.current, true);
   }
 
   return (
@@ -99,9 +128,12 @@ export default function NewTenderPage() {
       <div className="mx-auto max-w-3xl">
         <Link
           href="/dashboard"
-          className="text-sm font-medium text-blue-600"
+          className="group inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-600 shadow-sm transition duration-200 hover:-translate-x-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md focus-visible:ring-4 focus-visible:ring-blue-100 focus-visible:outline-none"
         >
-          ← Back to dashboard
+          <span className="transition-transform group-hover:-translate-x-0.5">
+            ←
+          </span>
+          Back to dashboard
         </Link>
 
         <div className="mt-5">
@@ -110,15 +142,34 @@ export default function NewTenderPage() {
           </h1>
 
           <p className="mt-2 text-sm text-slate-500">
-            Add the tender details now. PDF upload will be added on Day 6.
+            Upload a PDF tender document for secure processing.
           </p>
         </div>
 
         <form
+          ref={formRef}
+          autoComplete="off"
           className="mt-8 space-y-6 rounded-2xl border border-slate-200 bg-white p-5 sm:p-8"
           onSubmit={handleSubmit}
         >
           {formError && <Banner variant="error">{formError}</Banner>}
+
+          {duplicateWarning && (
+            <Banner variant="warning">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <span>{duplicateWarning}</span>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleDuplicateUpload}
+                  disabled={isSubmitting || allowDuplicate}
+                >
+                  {isSubmitting ? "Uploading..." : "Upload duplicate anyway"}
+                </Button>
+              </div>
+            </Banner>
+          )}
 
           <div className="grid gap-5 md:grid-cols-2">
             <Input
@@ -167,11 +218,36 @@ export default function NewTenderPage() {
             />
 
             {fieldErrors.notes && (
-              <span className="text-xs text-red-600">
-                {fieldErrors.notes}
-              </span>
+              <span className="text-xs text-red-600">{fieldErrors.notes}</span>
             )}
           </label>
+
+          <label className="flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-blue-200 bg-blue-50/50 p-5 text-center hover:bg-blue-50">
+            <span className="text-4xl">📄</span>
+
+            <span className="mt-3 text-sm font-semibold text-blue-700">
+              {fileName || "Click to choose a PDF"}
+            </span>
+
+            <span className="mt-1 text-xs text-slate-500">
+              PDF only, maximum 20 MB
+            </span>
+
+            <input
+              name="file"
+              type="file"
+              accept=".pdf,application/pdf"
+              className="sr-only"
+              required
+              onChange={(event) => {
+                handleFileChange(event.target.files?.[0]);
+              }}
+            />
+          </label>
+
+          {fieldErrors.file && (
+            <p className="text-xs text-red-600">{fieldErrors.file}</p>
+          )}
 
           <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5">
             <Link
@@ -182,7 +258,7 @@ export default function NewTenderPage() {
             </Link>
 
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating tender..." : "Create tender"}
+              {isSubmitting ? "Uploading..." : "Upload and analyze"}
             </Button>
           </div>
         </form>

@@ -1,26 +1,24 @@
 import { z } from "zod";
 
 export const registerSchema = z.object({
-    name: z.string().trim().min(1, "Name is required."),
-    email: z
-        .string()
-        .trim()
-        .pipe(z.email({ error: "Enter a valid email address." }))
-        .transform((value) => value.toLowerCase()),
-    password: z
-        .string()
-        .min(10, "Password must be at least 10 characters long."),
+  name: z.string().trim().min(1, "Name is required."),
+  email: z
+    .string()
+    .trim()
+    .pipe(z.email({ error: "Enter a valid email address." }))
+    .transform((value) => value.toLowerCase()),
+  password: z.string().min(10, "Password must be at least 10 characters long."),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 
 export const loginSchema = z.object({
-    email: z
-        .string()
-        .trim()
-        .pipe(z.email({ error: "Enter a valid email address." }))
-        .transform((value) => value.toLowerCase()),
-    password: z.string().min(1, "Password is required."),
+  email: z
+    .string()
+    .trim()
+    .pipe(z.email({ error: "Enter a valid email address." }))
+    .transform((value) => value.toLowerCase()),
+  password: z.string().min(1, "Password is required."),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
