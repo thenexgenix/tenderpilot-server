@@ -26,20 +26,29 @@ model User {
 }
 
 model Tender {
-  id         String       @id @default(cuid())
-  ownerId    String
-  title      String
-  issuerName String
-  reference  String?
-  deadlineAt DateTime?
-  notes      String?
-  status     TenderStatus @default(DRAFT)
-  stage      String?
-  errorCode  String?
-  createdAt  DateTime     @default(now())
-  deletedAt  DateTime?
+  id               String       @id @default(cuid())
+  ownerId          String
+  title            String
+  issuerName       String
+  reference        String?
+  deadlineAt       DateTime?
+  notes            String?
+
+  fileStorageKey   String?      @unique
+  fileOriginalName String?
+  fileMimeType     String?
+  fileSizeBytes    Int?
+  fileSha256       String?
+  fileUploadedAt   DateTime?
+  
+  status           TenderStatus @default(DRAFT)
+  stage            String?
+  errorCode        String?
+  createdAt        DateTime     @default(now())
+  deletedAt        DateTime?
 
   owner User @relation(fields: [ownerId], references: [id])
 
   @@index([ownerId])
+  @@index([ownerId, fileSha256])
 }

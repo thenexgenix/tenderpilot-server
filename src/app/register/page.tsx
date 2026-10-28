@@ -60,21 +60,15 @@ export default function RegisterPage() {
           password: fields.password?.[0],
         });
 
-        setFormError(
-          result.error?.message ?? "Unable to create your account.",
-        );
+        setFormError(result.error?.message ?? "Unable to create your account.");
 
         return;
       }
 
       form.reset();
-      setSuccessMessage(
-        "Account created successfully. You can now log in.",
-      );
+      setSuccessMessage("Account created successfully. You can now log in.");
     } catch {
-      setFormError(
-        "Unable to connect to the server. Please try again.",
-      );
+      setFormError("Unable to connect to the server. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
