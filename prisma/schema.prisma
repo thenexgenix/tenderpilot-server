@@ -26,29 +26,48 @@ model User {
 }
 
 model Tender {
-  id               String       @id @default(cuid())
-  ownerId          String
-  title            String
-  issuerName       String
-  reference        String?
-  deadlineAt       DateTime?
-  notes            String?
+  id         String    @id @default(cuid())
+  ownerId    String
+  title      String
+  issuerName String
+  reference  String?
+  deadlineAt DateTime?
+  notes      String?
 
-  fileStorageKey   String?      @unique
+  fileStorageKey   String?   @unique
   fileOriginalName String?
   fileMimeType     String?
   fileSizeBytes    Int?
   fileSha256       String?
   fileUploadedAt   DateTime?
-  
-  status           TenderStatus @default(DRAFT)
-  stage            String?
-  errorCode        String?
-  createdAt        DateTime     @default(now())
-  deletedAt        DateTime?
+
+  status    TenderStatus @default(DRAFT)
+  stage     String?
+  errorCode String?
+  createdAt DateTime     @default(now())
+  deletedAt DateTime?
+
+  pages DocumentPage[]
 
   owner User @relation(fields: [ownerId], references: [id])
 
   @@index([ownerId])
   @@index([ownerId, fileSha256])
+}
+
+model DocumentPage {
+  id               String   @id @default(cuid())
+  tenderId         String
+  pageNumber       Int
+  text             String   @db.Text
+  characterCount   Int      @default(0)
+  hasText          Boolean  @default(false)
+  extractionStatus String   @default("PENDING")
+  errorCode        String?
+  createdAt        DateTime @default(now())
+
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@unique([tenderId, pageNumber])
+  @@index([tenderId])
 }

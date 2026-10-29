@@ -48,7 +48,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <aside className="hidden w-64 shrink-0 flex-col bg-[#0f2a47] bg-[url('/images/sidebar-bg.png')] bg-[length:100%_100%] bg-top bg-no-repeat text-white lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-hidden bg-[#0f2a47] bg-[url('/images/sidebar-bg.png')] bg-[length:100%_100%] bg-top bg-no-repeat text-white lg:flex">
         <div className="flex h-20 items-center gap-3 border-b border-white/10 px-7">
           <Image
             src="/images/tenderpilot-symbol.png"
