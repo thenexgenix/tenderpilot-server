@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const storageRoot = path.resolve(
@@ -36,4 +36,8 @@ export async function deleteStoredFile(storageKey: string) {
       throw error;
     }
   }
+}
+
+export async function readStoredFile(storageKey: string) {
+  return readFile(getStoragePath(storageKey));
 }
