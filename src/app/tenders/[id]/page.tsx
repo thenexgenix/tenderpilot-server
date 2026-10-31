@@ -1,8 +1,14 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { Badge, Banner, Button, EmptyState, Skeleton } from "@/components/ui";
 
@@ -26,8 +32,57 @@ type Tender = {
   createdAt: string;
 };
 
+type TenderPage = {
+  pageNumber: number;
+  text: string;
+  characterCount: number;
+  hasText: boolean;
+  extractionStatus: string;
+  errorCode: string | null;
+};
+
 type TenderResponse = {
   data?: Tender;
+  error?: {
+    message?: string;
+  };
+};
+
+type StatusResponse = {
+  data?: {
+    tenderId: string;
+    status: TenderStatus;
+    stage: string | null;
+    errorCode: string | null;
+    pageCount: number;
+    pagesWithText: number;
+    pagesWithoutText: number;
+  };
+  error?: {
+    message?: string;
+  };
+};
+
+type PageResponse = {
+  data?: {
+    tenderId: string;
+    status: TenderStatus;
+    stage: string | null;
+    errorCode: string | null;
+    pageCount: number;
+    page: TenderPage | null;
+  };
+  error?: {
+    message?: string;
+  };
+};
+
+type ProcessResponse = {
+  data?: {
+    tenderId: string;
+    status: TenderStatus;
+    stage: string | null;
+  };
   error?: {
     message?: string;
   };
@@ -84,6 +139,54 @@ function StatusBadge({ status }: { status: TenderStatus }) {
   return <Badge variant={statusVariant(status)}>{statusLabel(status)}</Badge>;
 }
 
+function stageLabel(stage: string | null) {
+  if (stage === "QUEUED") {
+    return "Waiting to start";
+  }
+
+  if (stage === "EXTRACTING_TEXT") {
+    return "Extracting text from the PDF";
+  }
+
+  if (stage === "TEXT_EXTRACTED") {
+    return "Text extraction complete";
+  }
+
+  if (stage === "TEXT_EXTRACTION_FAILED") {
+    return "Text extraction failed";
+  }
+
+  return stage || "Waiting for processing";
+}
+
+function errorLabel(errorCode: string | null) {
+  if (errorCode === "PASSWORD_PROTECTED_PDF") {
+    return "This PDF is password-protected and cannot be processed.";
+  }
+
+  if (errorCode === "CORRUPT_PDF") {
+    return "This PDF could not be opened.";
+  }
+
+  if (errorCode === "TOO_MANY_PAGES") {
+    return "This PDF contains more than 150 pages.";
+  }
+
+  if (errorCode === "NO_READABLE_TEXT") {
+    return "No readable text was found. Scanned PDFs are not supported yet.";
+  }
+
+  if (errorCode === "PAGE_EXTRACTION_FAILED") {
+    return "Text could not be extracted from one of the pages.";
+  }
+
+  if (errorCode === "TEXT_EXTRACTION_FAILED") {
+    return "Text extraction failed unexpectedly.";
+  }
+
+  return errorCode;
+}
+
 function TabPlaceholder({
   title,
   description,
@@ -98,50 +201,331 @@ function TabPlaceholder({
   );
 }
 
+function ProcessingPanel({
+  tender,
+  isStarting,
+  onRetry,
+}: {
+  tender: Tender;
+  isStarting: boolean;
+  onRetry: () => void;
+}) {
+  const canRetry =
+    tender.status === "PROCESSING_FAILED" ||
+    tender.status === "ATTENTION_REQUIRED";
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
+            Document processing
+          </p>
+
+          <h2 className="mt-1 text-lg font-bold text-[#0f2a47]">
+            {stageLabel(tender.stage)}
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-500">
+            {tender.status === "PROCESSING"
+              ? "The page will update automatically while the PDF is being processed."
+              : tender.status === "DRAFT"
+                ? "The PDF text is ready for review. AI requirement analysis comes in the next stage."
+                : tender.status === "ATTENTION_REQUIRED"
+                  ? "Some pages need your attention before analysis can continue."
+                  : tender.status === "PROCESSING_FAILED"
+                    ? "The PDF could not be processed."
+                    : "Document status is ready for the next workflow step."}
+          </p>
+        </div>
+
+        <StatusBadge status={tender.status} />
+      </div>
+
+      {tender.status === "PROCESSING" && (
+        <div className="mt-4 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          Checking status every 3 seconds…
+        </div>
+      )}
+
+      {tender.errorCode && (
+        <div className="mt-4">
+          <Banner variant="warning">
+            {errorLabel(tender.errorCode)}
+          </Banner>
+        </div>
+      )}
+
+      {canRetry && (
+        <Button
+          type="button"
+          className="mt-4"
+          onClick={onRetry}
+          disabled={isStarting}
+        >
+          {isStarting ? "Retrying..." : "Retry processing"}
+        </Button>
+      )}
+    </section>
+  );
+}
+
 function TenderDetailsContent() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const tenderId = params.id;
 
   const [tender, setTender] = useState<Tender | null>(null);
   const [activeTab, setActiveTab] = useState("Requirements");
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isStartingProcessing, setIsStartingProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const loadTender = useCallback(async () => {
-    setIsLoading(true);
-    setErrorMessage("");
+  const [pageCount, setPageCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [page, setPage] = useState<TenderPage | null>(null);
+  const [isPageLoading, setIsPageLoading] = useState(false);
+  const [pageError, setPageError] = useState("");
 
+  const processingStartedRef = useRef(false);
+
+  const loadTender = useCallback(
+    async (showLoader: boolean) => {
+      if (showLoader) {
+        setIsLoading(true);
+      }
+
+      setErrorMessage("");
+
+      try {
+        const response = await fetch(`/api/tenders/${tenderId}`, {
+          cache: "no-store",
+        });
+
+        const result = (await response.json()) as TenderResponse;
+
+        if (!response.ok) {
+          setErrorMessage(result.error?.message ?? "Tender not found.");
+          return;
+        }
+
+        setTender(result.data ?? null);
+      } catch {
+        setErrorMessage("Unable to connect to the server. Please try again.");
+      } finally {
+        if (showLoader) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [tenderId],
+  );
+
+  const loadStatus = useCallback(async () => {
     try {
-      const response = await fetch(`/api/tenders/${tenderId}`, {
+      const response = await fetch(`/api/tenders/${tenderId}/status`, {
         cache: "no-store",
       });
 
-      const result = (await response.json()) as TenderResponse;
+      const result = (await response.json()) as StatusResponse;
 
       if (!response.ok) {
-        setErrorMessage(result.error?.message ?? "Tender not found.");
+        setErrorMessage(
+          result.error?.message ?? "Unable to load processing status.",
+        );
         return;
       }
 
-      setTender(result.data ?? null);
+      if (!result.data) {
+        return;
+      }
+
+      setPageCount(result.data.pageCount);
+
+      setTender((currentTender) => {
+        if (!currentTender) {
+          return currentTender;
+        }
+
+        return {
+          ...currentTender,
+          status: result.data!.status,
+          stage: result.data!.stage,
+          errorCode: result.data!.errorCode,
+        };
+      });
     } catch {
-      setErrorMessage("Unable to connect to the server. Please try again.");
-    } finally {
-      setIsLoading(false);
+      setErrorMessage("Unable to refresh processing status.");
     }
   }, [tenderId]);
 
+  const startProcessing = useCallback(async () => {
+    setIsStartingProcessing(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch(`/api/tenders/${tenderId}/process`, {
+        method: "POST",
+      });
+
+      const result = (await response.json()) as ProcessResponse;
+
+      if (!response.ok) {
+        setErrorMessage(
+          result.error?.message ?? "Unable to start PDF processing.",
+        );
+        return;
+      }
+
+      if (result.data) {
+        setTender((currentTender) => {
+          if (!currentTender) {
+            return currentTender;
+          }
+
+          return {
+            ...currentTender,
+            status: result.data!.status,
+            stage: result.data!.stage,
+            errorCode: null,
+          };
+        });
+      }
+
+      await loadStatus();
+    } catch {
+      setErrorMessage("Unable to connect to the server. Please try again.");
+    } finally {
+      setIsStartingProcessing(false);
+    }
+  }, [loadStatus, tenderId]);
+
+  const loadPage = useCallback(
+    async (pageNumber: number) => {
+      setIsPageLoading(true);
+      setPageError("");
+
+      try {
+        const response = await fetch(
+          `/api/tenders/${tenderId}/pages?page=${pageNumber}`,
+          {
+            cache: "no-store",
+          },
+        );
+
+        const result = (await response.json()) as PageResponse;
+
+        if (!response.ok) {
+          setPageError(
+            result.error?.message ?? "Unable to load this document page.",
+          );
+          setPage(null);
+          return;
+        }
+
+        if (!result.data) {
+          setPageError("The document page response was empty.");
+          setPage(null);
+          return;
+        }
+
+        setPageCount(result.data.pageCount);
+        setPage(result.data.page);
+      } catch {
+        setPageError("Unable to connect while loading the document page.");
+        setPage(null);
+      } finally {
+        setIsPageLoading(false);
+      }
+    },
+    [tenderId],
+  );
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      void loadTender();
+      void loadTender(true);
     }, 0);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
   }, [loadTender]);
+
+  useEffect(() => {
+    if (!tender?.id) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void loadStatus();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [tender?.id, loadStatus]);
+
+  useEffect(() => {
+    if (
+      !tender ||
+      searchParams.get("startProcessing") !== "1" ||
+      processingStartedRef.current
+    ) {
+      return;
+    }
+
+    processingStartedRef.current = true;
+
+    const timeoutId = window.setTimeout(() => {
+      router.replace(`/tenders/${tenderId}`);
+      void startProcessing();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    router,
+    searchParams,
+    startProcessing,
+    tender,
+    tenderId,
+  ]);
+
+  useEffect(() => {
+    if (tender?.status !== "PROCESSING") {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void loadStatus();
+    }, 3000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [loadStatus, tender?.status]);
+
+  useEffect(() => {
+    if (
+      tender?.status !== "DRAFT" &&
+      tender?.status !== "ANALYZED" &&
+      tender?.status !== "ATTENTION_REQUIRED"
+    ) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void loadPage(currentPage);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [currentPage, loadPage, tender?.id, tender?.status]);
+
   async function handleDelete() {
     const confirmed = window.confirm(
       "Delete this tender? It will be removed from your dashboard.",
@@ -198,12 +582,9 @@ function TenderDetailsContent() {
 
           <Link
             href="/dashboard"
-            className="group inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-600 shadow-sm transition duration-200 hover:-translate-x-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md focus-visible:ring-4 focus-visible:ring-blue-100 focus-visible:outline-none"
+            className="inline-flex min-h-10 items-center rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-600"
           >
-            <span className="transition-transform group-hover:-translate-x-0.5">
-              ←
-            </span>
-            Back to dashboard
+            ← Back to dashboard
           </Link>
         </div>
       </AppShell>
@@ -215,12 +596,9 @@ function TenderDetailsContent() {
       <div className="space-y-6">
         <Link
           href="/dashboard"
-          className="group inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-600 shadow-sm transition duration-200 hover:-translate-x-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md focus-visible:ring-4 focus-visible:ring-blue-100 focus-visible:outline-none"
+          className="inline-flex min-h-10 items-center rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-600"
         >
-          <span className="transition-transform group-hover:-translate-x-0.5">
-            ←
-          </span>
-          Back to tenders
+          ← Back to tenders
         </Link>
 
         {errorMessage && <Banner variant="error">{errorMessage}</Banner>}
@@ -236,7 +614,8 @@ function TenderDetailsContent() {
             </h1>
 
             <p className="mt-2 text-sm text-slate-500">
-              {tender.issuerName} · Deadline: {formatDate(tender.deadlineAt)}
+              {tender.issuerName} · Deadline:{" "}
+              {formatDate(tender.deadlineAt)}
             </p>
           </div>
 
@@ -253,6 +632,12 @@ function TenderDetailsContent() {
             </Button>
           </div>
         </section>
+
+        <ProcessingPanel
+          tender={tender}
+          isStarting={isStartingProcessing}
+          onRetry={() => void startProcessing()}
+        />
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <p className="text-xs font-semibold text-slate-400 uppercase">
@@ -274,11 +659,10 @@ function TenderDetailsContent() {
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`min-h-12 border-b-2 px-4 text-sm font-semibold whitespace-nowrap ${
-                activeTab === tab
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
-              }`}
+              className={`min-h-12 border-b-2 px-4 text-sm font-semibold whitespace-nowrap ${activeTab === tab
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
             >
               {tab}
             </button>
@@ -291,10 +675,104 @@ function TenderDetailsContent() {
         </Banner>
 
         {activeTab === "Requirements" && (
-          <TabPlaceholder
-            title="No requirements yet"
-            description="PDF upload and text extraction will be implemented in the next Day 6–8 stages."
-          />
+          <>
+            <section className="rounded-2xl border border-slate-200 bg-white p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
+                    Source document
+                  </p>
+
+                  <h2 className="mt-1 text-xl font-bold text-[#0f2a47]">
+                    Page text viewer
+                  </h2>
+                </div>
+
+                <p className="text-sm font-semibold text-slate-500">
+                  {pageCount > 0
+                    ? `Page ${currentPage} of ${pageCount}`
+                    : "No pages available"}
+                </p>
+              </div>
+
+              {pageError && (
+                <div className="mt-4">
+                  <Banner variant="error">{pageError}</Banner>
+                </div>
+              )}
+
+              <div className="mt-5 min-h-64 rounded-xl border border-slate-200 bg-slate-50 p-5">
+                {isPageLoading && (
+                  <div className="space-y-3">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-11/12" />
+                    <Skeleton className="h-4 w-10/12" />
+                    <Skeleton className="h-4 w-9/12" />
+                  </div>
+                )}
+
+                {!isPageLoading && !page && !pageError && (
+                  <EmptyState
+                    title="Pages are not available yet"
+                    description="Pages will appear after PDF processing finishes."
+                  />
+                )}
+
+                {!isPageLoading && page && (
+                  <>
+                    {!page.hasText && (
+                      <Banner variant="warning">
+                        No readable text was found on this page.
+                      </Banner>
+                    )}
+
+                    <pre className="mt-4 max-h-[32rem] overflow-auto whitespace-pre-wrap font-sans text-sm leading-7 text-slate-700">
+                      {page.text || "This page contains no extracted text."}
+                    </pre>
+                  </>
+                )}
+              </div>
+
+              <div className="mt-5 flex flex-wrap justify-between gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={
+                    isPageLoading ||
+                    currentPage <= 1 ||
+                    pageCount === 0
+                  }
+                  onClick={() =>
+                    setCurrentPage((value) => Math.max(1, value - 1))
+                  }
+                >
+                  ← Previous page
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={
+                    isPageLoading ||
+                    pageCount === 0 ||
+                    currentPage >= pageCount
+                  }
+                  onClick={() =>
+                    setCurrentPage((value) =>
+                      Math.min(pageCount, value + 1),
+                    )
+                  }
+                >
+                  Next page →
+                </Button>
+              </div>
+            </section>
+
+            <TabPlaceholder
+              title="Requirements analysis comes next"
+              description="The extracted source pages are ready. AI requirement extraction will be implemented in Days 9–11."
+            />
+          </>
         )}
 
         {activeTab === "Checklist" && (
