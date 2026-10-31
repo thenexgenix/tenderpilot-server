@@ -92,7 +92,7 @@ export default function NewTenderPage() {
       setFormError("");
       setFieldErrors({});
 
-      router.push(`/tenders/${result.data.id}`);
+      router.push(`/tenders/${result.data.id}?startProcessing=1`);
       router.refresh();
     } catch {
       setFormError("Unable to connect to the server. Please try again.");

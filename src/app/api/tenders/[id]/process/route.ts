@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
-import {
-    processTenderPdf,
-} from "@/lib/pdf/process-tender";
-import { PdfExtractionError } from "@/lib/pdf/extract-pages";
+import { prisma } from "@/lib/prisma";
+import { processTenderPdf } from "@/lib/pdf/process-tender";
 
 type RouteContext = {
     params: Promise<{ id: string }>;
@@ -29,36 +27,68 @@ export async function POST(
 
     const { id } = await params;
 
-    try {
-        const result = await processTenderPdf(id, user.id);
+    const tender = await prisma.tender.findFirst({
+        where: {
+            id,
+            ownerId: user.id,
+            deletedAt: null,
+        },
+        select: {
+            id: true,
+            status: true,
+        },
+    });
 
-        return NextResponse.json({
-            data: result,
-        });
-    } catch (error) {
-        if (error instanceof PdfExtractionError) {
-            const status =
-                error.code === "TENDER_NOT_FOUND" ? 404 : 422;
-
-            return NextResponse.json(
-                {
-                    error: {
-                        code: error.code,
-                        message: error.message,
-                    },
-                },
-                { status },
-            );
-        }
-
+    if (!tender) {
         return NextResponse.json(
             {
                 error: {
-                    code: "TEXT_EXTRACTION_FAILED",
-                    message: "Unable to extract text from this PDF.",
+                    code: "TENDER_NOT_FOUND",
+                    message: "Tender not found.",
                 },
             },
-            { status: 500 },
+            { status: 404 },
         );
     }
+
+    if (tender.status === "PROCESSING") {
+        return NextResponse.json(
+            {
+                data: {
+                    tenderId: tender.id,
+                    status: "PROCESSING",
+                    stage: "EXTRACTING_TEXT",
+                    queued: false,
+                },
+            },
+            { status: 202 },
+        );
+    }
+
+    await prisma.tender.update({
+        where: {
+            id: tender.id,
+        },
+        data: {
+            status: "PROCESSING",
+            stage: "QUEUED",
+            errorCode: null,
+        },
+    });
+
+    void processTenderPdf(tender.id, user.id).catch(() => {
+        // processTenderPdf records the failure status in the database.
+    });
+
+    return NextResponse.json(
+        {
+            data: {
+                tenderId: tender.id,
+                status: "PROCESSING",
+                stage: "QUEUED",
+                queued: true,
+            },
+        },
+        { status: 202 },
+    );
 }
