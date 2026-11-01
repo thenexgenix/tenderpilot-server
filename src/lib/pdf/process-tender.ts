@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { readStoredFile } from "@/lib/storage";
 import {
     extractPdfPages,
@@ -52,39 +53,41 @@ export async function processTenderPdf(
         const finalStatus =
             pagesWithoutText.length > 0 ? "ATTENTION_REQUIRED" : "DRAFT";
 
-        await prisma.$transaction(async (transaction) => {
-            await transaction.documentPage.deleteMany({
-                where: {
-                    tenderId: tender.id,
-                },
-            });
+        await prisma.$transaction(
+            async (transaction: Prisma.TransactionClient) => {
+                await transaction.documentPage.deleteMany({
+                    where: {
+                        tenderId: tender.id,
+                    },
+                });
 
-            await transaction.documentPage.createMany({
-                data: pages.map((page) => ({
-                    tenderId: tender.id,
-                    pageNumber: page.pageNumber,
-                    text: page.text,
-                    characterCount: page.characterCount,
-                    hasText: page.hasText,
-                    extractionStatus: page.extractionStatus,
-                    errorCode: page.errorCode,
-                })),
-            });
+                await transaction.documentPage.createMany({
+                    data: pages.map((page) => ({
+                        tenderId: tender.id,
+                        pageNumber: page.pageNumber,
+                        text: page.text,
+                        characterCount: page.characterCount,
+                        hasText: page.hasText,
+                        extractionStatus: page.extractionStatus,
+                        errorCode: page.errorCode,
+                    })),
+                });
 
-            await transaction.tender.update({
-                where: {
-                    id: tender.id,
-                },
-                data: {
-                    status: finalStatus,
-                    stage: "TEXT_EXTRACTED",
-                    errorCode:
-                        pagesWithoutText.length > 0
-                            ? "NO_READABLE_TEXT"
-                            : null,
-                },
-            });
-        });
+                await transaction.tender.update({
+                    where: {
+                        id: tender.id,
+                    },
+                    data: {
+                        status: finalStatus,
+                        stage: "TEXT_EXTRACTED",
+                        errorCode:
+                            pagesWithoutText.length > 0
+                                ? "NO_READABLE_TEXT"
+                                : null,
+                    },
+                });
+            },
+        );
 
         return {
             tenderId: tender.id,
