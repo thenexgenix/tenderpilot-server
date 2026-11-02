@@ -1,10 +1,30 @@
-import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+
+import {
+    AiProviderError,
+    createAiProvider,
+} from "@/lib/ai/provider";
+
+import {
+    analyzeTenderPages,
+} from "@/lib/ai/analyze-tender";
+
+import {
+    saveAiRequirements,
+} from "@/lib/requirements/save-ai-requirements";
+
 import { readStoredFile } from "@/lib/storage";
+
 import {
     extractPdfPages,
     PdfExtractionError,
 } from "@/lib/pdf/extract-pages";
+
+import {
+    DailyAnalysisLimitError,
+    reserveDailyAnalysisSlot,
+} from "@/lib/ai/analysis-limit";
 
 export async function processTenderPdf(
     tenderId: string,
@@ -37,7 +57,9 @@ export async function processTenderPdf(
     }
 
     await prisma.tender.update({
-        where: { id: tender.id },
+        where: {
+            id: tender.id,
+        },
         data: {
             status: "PROCESSING",
             stage: "EXTRACTING_TEXT",
@@ -46,12 +68,17 @@ export async function processTenderPdf(
     });
 
     try {
-        const pdfBuffer = await readStoredFile(tender.fileStorageKey);
-        const pages = await extractPdfPages(pdfBuffer);
+        const pdfBuffer = await readStoredFile(
+            tender.fileStorageKey,
+        );
 
-        const pagesWithoutText = pages.filter((page) => !page.hasText);
-        const finalStatus =
-            pagesWithoutText.length > 0 ? "ATTENTION_REQUIRED" : "DRAFT";
+        const pages = await extractPdfPages(pdfBuffer);
+        const pagesWithoutText = pages.filter(
+            (page) => !page.hasText,
+        );
+        const readablePages = pages.filter(
+            (page) => page.hasText,
+        );
 
         await prisma.$transaction(
             async (transaction: Prisma.TransactionClient) => {
@@ -78,7 +105,7 @@ export async function processTenderPdf(
                         id: tender.id,
                     },
                     data: {
-                        status: finalStatus,
+                        status: "PROCESSING",
                         stage: "TEXT_EXTRACTED",
                         errorCode:
                             pagesWithoutText.length > 0
@@ -89,17 +116,116 @@ export async function processTenderPdf(
             },
         );
 
+        if (readablePages.length === 0) {
+            await prisma.tender.update({
+                where: {
+                    id: tender.id,
+                },
+                data: {
+                    status: "ATTENTION_REQUIRED",
+                    stage: "TEXT_EXTRACTION_COMPLETE",
+                    errorCode: "NO_READABLE_TEXT",
+                },
+            });
+
+            return {
+                tenderId: tender.id,
+                pageCount: pages.length,
+                requirementsCount: 0,
+                failedChunks: [],
+                status: "ATTENTION_REQUIRED" as const,
+            };
+        }
+
+        await prisma.tender.update({
+            where: {
+                id: tender.id,
+            },
+            data: {
+                status: "PROCESSING",
+                stage: "ANALYZING_REQUIREMENTS",
+                errorCode: null,
+            },
+        });
+
+        const provider = createAiProvider();
+
+        try {
+            await reserveDailyAnalysisSlot(ownerId);
+        } catch (error) {
+            if (error instanceof DailyAnalysisLimitError) {
+                await prisma.tender.update({
+                    where: {
+                        id: tender.id,
+                    },
+                    data: {
+                        status: "ATTENTION_REQUIRED",
+                        stage: "AI_LIMIT_REACHED",
+                        errorCode: error.code,
+                    },
+                });
+
+                return {
+                    tenderId: tender.id,
+                    pageCount: pages.length,
+                    requirementsCount: 0,
+                    failedChunks: [],
+                    status: "ATTENTION_REQUIRED" as const,
+                };
+            }
+
+            throw error;
+        }
+
+        const analysis = await analyzeTenderPages(
+            readablePages,
+            provider,
+        );
+
+        const savedRequirements =
+            await saveAiRequirements(
+                tender.id,
+                analysis.requirements,
+            );
+
+        const attentionRequired =
+            pagesWithoutText.length > 0 ||
+            analysis.failedChunks.length > 0;
+
+        const finalStatus = attentionRequired
+            ? "ATTENTION_REQUIRED"
+            : "ANALYZED";
+
+        await prisma.tender.update({
+            where: {
+                id: tender.id,
+            },
+            data: {
+                status: finalStatus,
+                stage: "REQUIREMENTS_EXTRACTED",
+                errorCode:
+                    analysis.failedChunks.length > 0
+                        ? "AI_CHUNK_FAILED"
+                        : pagesWithoutText.length > 0
+                            ? "NO_READABLE_TEXT"
+                            : null,
+            },
+        });
+
         return {
             tenderId: tender.id,
             pageCount: pages.length,
-            pagesWithoutText: pagesWithoutText.length,
+            requirementsCount: savedRequirements.savedCount,
+            failedChunks: analysis.failedChunks,
             status: finalStatus,
         };
     } catch (error) {
         const errorCode =
             error instanceof PdfExtractionError
                 ? error.code
-                : "TEXT_EXTRACTION_FAILED";
+                : error instanceof AiProviderError
+                    ? `AI_${error.code}`
+                    : "AI_PROCESSING_FAILED";
 
         await prisma.tender.update({
             where: {
@@ -107,7 +233,7 @@ export async function processTenderPdf(
             },
             data: {
                 status: "PROCESSING_FAILED",
-                stage: "TEXT_EXTRACTION_FAILED",
+                stage: "AI_PROCESSING_FAILED",
                 errorCode,
             },
         });

@@ -192,9 +192,18 @@ class GeminiProvider implements AiProvider {
             const validation = request.schema.safeParse(parsed);
 
             if (!validation.success) {
+                const issueSummary = validation.error.issues.map(
+                    (issue) => ({
+                        path: issue.path.join(".") || "(root)",
+                        code: issue.code,
+                    }),
+                );
+
                 throw new AiProviderError(
                     "MALFORMED_RESPONSE",
-                    "The Gemini response did not match the required schema.",
+                    `The Gemini response did not match the required schema. Issues: ${JSON.stringify(
+                        issueSummary,
+                    )}`,
                 );
             }
 
