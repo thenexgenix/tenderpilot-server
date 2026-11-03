@@ -1,6 +1,11 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -139,41 +144,67 @@ function DashboardContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  async function loadTenders() {
-    setIsLoading(true);
-    setErrorMessage("");
-
-    try {
-      const response = await fetch("/api/tenders", {
-        cache: "no-store",
-      });
-
-      const result = (await response.json()) as TendersResponse;
-
-      if (!response.ok) {
-        setErrorMessage(
-          result.error?.message ?? "Unable to load your tenders.",
-        );
-        return;
+  const loadTenders = useCallback(
+    async (showLoading = true) => {
+      if (showLoading) {
+        setIsLoading(true);
       }
 
-      setTenders(result.data ?? []);
-    } catch {
-      setErrorMessage("Unable to connect to the server. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
+      setErrorMessage("");
+
+      try {
+        const response = await fetch("/api/tenders", {
+          cache: "no-store",
+        });
+
+        const result = (await response.json()) as TendersResponse;
+
+        if (!response.ok) {
+          setErrorMessage(
+            result.error?.message ?? "Unable to load your tenders.",
+          );
+          return;
+        }
+
+        setTenders(result.data ?? []);
+      } catch {
+        setErrorMessage("Unable to connect to the server. Please try again.");
+      } finally {
+        if (showLoading) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      void loadTenders();
+      void loadTenders(true);
     }, 0);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, []);
+  }, [loadTenders]);
+
+  useEffect(() => {
+    const hasProcessingTender = tenders.some(
+      (tender) => tender.status === "PROCESSING",
+    );
+
+    if (!hasProcessingTender) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void loadTenders(false);
+    }, 3000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [loadTenders, tenders]);
 
   const needsReview = tenders.filter(
     (tender) =>
@@ -185,10 +216,10 @@ function DashboardContent() {
   const searchTerm = (searchParams.get("search") ?? "").trim().toLowerCase();
   const visibleTenders = searchTerm
     ? tenders.filter((tender) =>
-        [tender.title, tender.issuerName, tender.reference ?? ""].some(
-          (value) => value.toLowerCase().includes(searchTerm),
-        ),
-      )
+      [tender.title, tender.issuerName, tender.reference ?? ""].some(
+        (value) => value.toLowerCase().includes(searchTerm),
+      ),
+    )
     : tenders;
 
   return (
