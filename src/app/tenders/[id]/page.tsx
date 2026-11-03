@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { Badge, Banner, Button, EmptyState, Skeleton } from "@/components/ui";
+import { RequirementsTab } from "@/components/requirements-tab";
 
 type TenderStatus =
   | "DRAFT"
@@ -156,6 +157,14 @@ function stageLabel(stage: string | null) {
     return "Text extraction failed";
   }
 
+  if (stage === "ANALYZING_REQUIREMENTS") {
+    return "Analyzing tender requirements";
+  }
+
+  if (stage === "REQUIREMENTS_VERIFIED") {
+    return "Requirements verified";
+  }
+
   return stage || "Waiting for processing";
 }
 
@@ -230,7 +239,7 @@ function ProcessingPanel({
             {tender.status === "PROCESSING"
               ? "The page will update automatically while the PDF is being processed."
               : tender.status === "DRAFT"
-                ? "The PDF text is ready for review. AI requirement analysis comes in the next stage."
+                ? "Your PDF is ready. Analysis will start automatically."
                 : tender.status === "ATTENTION_REQUIRED"
                   ? "Some pages need your attention before analysis can continue."
                   : tender.status === "PROCESSING_FAILED"
@@ -768,9 +777,9 @@ function TenderDetailsContent() {
               </div>
             </section>
 
-            <TabPlaceholder
-              title="Requirements analysis comes next"
-              description="The extracted source pages are ready. AI requirement extraction will be implemented in Days 9–11."
+            <RequirementsTab
+              key={tender.status}
+              tenderId={tender.id}
             />
           </>
         )}

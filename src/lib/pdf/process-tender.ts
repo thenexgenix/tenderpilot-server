@@ -26,6 +26,10 @@ import {
     reserveDailyAnalysisSlot,
 } from "@/lib/ai/analysis-limit";
 
+import {
+    verifyTenderRequirements,
+} from "@/lib/requirements/verify-tender-requirements";
+
 export async function processTenderPdf(
     tenderId: string,
     ownerId: string,
@@ -188,6 +192,12 @@ export async function processTenderPdf(
                 analysis.requirements,
             );
 
+        const verification =
+            await verifyTenderRequirements(
+                tender.id,
+                ownerId,
+            );
+
         const attentionRequired =
             pagesWithoutText.length > 0 ||
             analysis.failedChunks.length > 0;
@@ -202,7 +212,7 @@ export async function processTenderPdf(
             },
             data: {
                 status: finalStatus,
-                stage: "REQUIREMENTS_EXTRACTED",
+                stage: "REQUIREMENTS_VERIFIED",
                 errorCode:
                     analysis.failedChunks.length > 0
                         ? "AI_CHUNK_FAILED"
@@ -216,6 +226,8 @@ export async function processTenderPdf(
             tenderId: tender.id,
             pageCount: pages.length,
             requirementsCount: savedRequirements.savedCount,
+            verifiedCount: verification.verifiedCount,
+            unverifiedCount: verification.unverifiedCount,
             failedChunks: analysis.failedChunks,
             status: finalStatus,
         };
