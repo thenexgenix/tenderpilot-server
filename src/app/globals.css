@@ -5,16 +5,21 @@
   --foreground: #0f2a47;
   --navy: #0f2a47;
   --blue: #2563eb;
+  --blue-hover: #1d4ed8;
   --blue-light: #eff6ff;
   --border: #e5e7eb;
+  --card: #ffffff;
 }
 
 * {
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
 html {
   min-width: 320px;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -22,9 +27,10 @@ body {
   overflow-x: hidden;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
+/* Focus ring styling for accessibility compliance */
 button,
 a,
 input,

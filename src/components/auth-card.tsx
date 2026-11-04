@@ -19,9 +19,9 @@ export function AuthCard({
           <Image
             src="/images/tenderpilot-symbol.png"
             alt="TenderPilot AI symbol"
-            width={40}
-            height={32}
-            className="h-8 w-10 object-contain"
+            width={291}
+            height={233}
+            className="h-8 w-auto object-contain"
           />
           <span>
             TenderPilot <span className="text-blue-600">AI</span>
