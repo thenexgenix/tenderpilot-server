@@ -12,6 +12,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { Badge, Banner, Button, EmptyState, Skeleton } from "@/components/ui";
 import { RequirementsTab } from "@/components/requirements-tab";
+import { ChecklistTab } from "@/components/checklist-tab";
 
 type TenderStatus =
   | "DRAFT"
@@ -286,7 +287,14 @@ function TenderDetailsContent() {
   const tenderId = params.id;
 
   const [tender, setTender] = useState<Tender | null>(null);
-  const [activeTab, setActiveTab] = useState("Requirements");
+
+  const tabFromUrl = searchParams.get("tab");
+
+  const activeTab =
+    tabFromUrl && tabs.includes(tabFromUrl)
+      ? tabFromUrl
+      : "Requirements";
+
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isStartingProcessing, setIsStartingProcessing] = useState(false);
@@ -535,6 +543,27 @@ function TenderDetailsContent() {
     };
   }, [currentPage, loadPage, tender?.id, tender?.status]);
 
+
+  function handleTabChange(tab: string) {
+
+    const nextParams = new URLSearchParams(
+      searchParams.toString(),
+    );
+
+    if (tab === "Requirements") {
+      nextParams.delete("tab");
+    } else {
+      nextParams.set("tab", tab);
+    }
+
+    const query = nextParams.toString();
+
+    router.replace(
+      `/tenders/${tenderId}${query ? `?${query}` : ""}`,
+      { scroll: false },
+    );
+  }
+
   async function handleDelete() {
     const confirmed = window.confirm(
       "Delete this tender? It will be removed from your dashboard.",
@@ -667,7 +696,7 @@ function TenderDetailsContent() {
             <button
               key={tab}
               type="button"
-              onClick={() => setActiveTab(tab)}
+              onClick={() => handleTabChange(tab)}
               className={`min-h-12 border-b-2 px-4 text-sm font-semibold whitespace-nowrap ${activeTab === tab
                 ? "border-blue-600 text-blue-600"
                 : "border-transparent text-slate-500 hover:text-slate-800"
@@ -785,9 +814,9 @@ function TenderDetailsContent() {
         )}
 
         {activeTab === "Checklist" && (
-          <TabPlaceholder
-            title="Checklist is not available yet"
-            description="The checklist will be created after requirements are extracted."
+          <ChecklistTab
+            key={tender.status}
+            tenderId={tender.id}
           />
         )}
 
