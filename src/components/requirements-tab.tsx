@@ -9,6 +9,8 @@ import {
 } from "react";
 import { Banner, EmptyState, Skeleton } from "@/components/ui";
 import { KeyFactsPanel } from "@/components/key-facts-panel";
+import { RequirementReviewActions } from "@/components/requirement-review-actions";
+import { AddManualRequirement } from "@/components/add-manual-requirement";
 
 type Requirement = {
     id: string;
@@ -74,6 +76,40 @@ export function RequirementsTab({
         requirement: Requirement,
     ) {
         setSelectedRequirement(requirement);
+        setSourcePage(null);
+        setSourceError("");
+    }
+
+    function handleRequirementUpdated(
+        updatedRequirement: Requirement,
+    ) {
+        setRequirements((current) =>
+            current.map((requirement) =>
+                requirement.id === updatedRequirement.id
+                    ? updatedRequirement
+                    : requirement,
+            ),
+        );
+
+        setSelectedRequirement((current) =>
+            current?.id === updatedRequirement.id
+                ? updatedRequirement
+                : current,
+        );
+
+        setSourcePage(null);
+        setSourceError("");
+    }
+
+    function handleRequirementCreated(
+        createdRequirement: Requirement,
+    ) {
+        setRequirements((current) => [
+            ...current,
+            createdRequirement,
+        ]);
+
+        setSelectedRequirement(null);
         setSourcePage(null);
         setSourceError("");
     }
@@ -258,6 +294,12 @@ export function RequirementsTab({
             <KeyFactsPanel tenderId={tenderId} />
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="mb-4 flex justify-end">
+                    <AddManualRequirement
+                        tenderId={tenderId}
+                        onCreated={handleRequirementCreated}
+                    />
+                </div>
                 <div className="flex flex-wrap gap-3">
                     <select
                         value={category}
@@ -330,6 +372,7 @@ export function RequirementsTab({
                                     <th className="px-4 py-3">Obligation</th>
                                     <th className="px-4 py-3">Page</th>
                                     <th className="px-4 py-3">Verification</th>
+                                    <th className="px-4 py-3">Review</th>
                                 </tr>
                             </thead>
 
@@ -372,6 +415,12 @@ export function RequirementsTab({
                                             >
                                                 {requirement.verification}
                                             </StatusBadge>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <RequirementReviewActions
+                                                requirement={requirement}
+                                                onUpdated={handleRequirementUpdated}
+                                            />
                                         </td>
                                     </tr>
                                 ))}
@@ -418,6 +467,13 @@ export function RequirementsTab({
                                         ? `Page ${requirement.pageNumber}`
                                         : "Page not found"}
                                 </p>
+
+                                <div className="mt-4 border-t border-slate-100 pt-4">
+                                    <RequirementReviewActions
+                                        requirement={requirement}
+                                        onUpdated={handleRequirementUpdated}
+                                    />
+                                </div>
                             </article>
                         ))}
                     </div>
