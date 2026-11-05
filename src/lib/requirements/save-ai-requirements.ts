@@ -34,7 +34,7 @@ export async function saveAiRequirements(
                 where: {
                     tenderId,
                     origin: "AI",
-                    checkStatus: "NOT_REVIEWED",
+                    reviewedAt: null,
                 },
             });
 

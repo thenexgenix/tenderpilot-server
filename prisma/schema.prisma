@@ -75,20 +75,21 @@ model DocumentPage {
 }
 
 model Requirement {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   tenderId     String
   displayId    String
   category     String
-  text         String   @db.Text
-  explanation  String?  @db.Text
+  text         String    @db.Text
+  explanation  String?   @db.Text
   obligation   String
   pageNumber   Int?
-  quote        String?  @db.Text
-  verification String   @default("UNVERIFIED")
-  origin       String   @default("AI")
-  checkStatus  String   @default("NOT_REVIEWED")
-  checkNote    String?  @db.Text
-  updatedAt    DateTime @updatedAt
+  quote        String?   @db.Text
+  verification String    @default("UNVERIFIED")
+  origin       String    @default("AI")
+  checkStatus  String    @default("NOT_REVIEWED")
+  checkNote    String?   @db.Text
+  reviewedAt   DateTime?
+  updatedAt    DateTime  @updatedAt
 
   tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
 
