@@ -15,6 +15,13 @@ enum TenderStatus {
   PROCESSING_FAILED
 }
 
+enum DraftStatus {
+  NOT_STARTED
+  GENERATING
+  READY
+  FAILED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -42,14 +49,18 @@ model Tender {
   fileSha256       String?
   fileUploadedAt   DateTime?
 
-  status    TenderStatus @default(DRAFT)
-  stage     String?
-  errorCode String?
-  createdAt DateTime     @default(now())
-  deletedAt DateTime?
+  status         TenderStatus @default(DRAFT)
+  stage          String?
+  errorCode      String?
+  draftStatus    DraftStatus  @default(NOT_STARTED)
+  draftErrorCode String?
+  draftUpdatedAt DateTime?
+  createdAt      DateTime     @default(now())
+  deletedAt      DateTime?
 
   pages        DocumentPage[]
   requirements Requirement[]
+  draft        DraftSection[]
 
   owner User @relation(fields: [ownerId], references: [id])
 
@@ -109,4 +120,21 @@ model AiAnalysisUsage {
 
   @@unique([userId, usageDate])
   @@index([userId])
+}
+
+model DraftSection {
+  id        String   @id @default(cuid())
+  tenderId  String
+  key       String
+  title     String
+  position  Int
+  content   String   @db.Text
+  generated Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+  warnings  String?  @db.Text
+
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@unique([tenderId, key])
+  @@index([tenderId])
 }
