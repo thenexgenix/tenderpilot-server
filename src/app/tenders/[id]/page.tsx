@@ -13,6 +13,7 @@ import { AppShell } from "@/components/app-shell";
 import { Badge, Banner, Button, EmptyState, Skeleton } from "@/components/ui";
 import { RequirementsTab } from "@/components/requirements-tab";
 import { ChecklistTab } from "@/components/checklist-tab";
+import { DraftTab } from "@/components/draft-tab";
 
 type TenderStatus =
   | "DRAFT"
@@ -821,9 +822,9 @@ function TenderDetailsContent() {
         )}
 
         {activeTab === "Draft" && (
-          <TabPlaceholder
-            title="Draft generation is not available yet"
-            description="Draft generation will be implemented after the requirements workflow."
+          <DraftTab
+            key={tender.id}
+            tenderId={tender.id}
           />
         )}
 
