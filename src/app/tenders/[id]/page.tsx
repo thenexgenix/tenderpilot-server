@@ -300,6 +300,8 @@ function TenderDetailsContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isStartingProcessing, setIsStartingProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [draftHasUnsavedChanges, setDraftHasUnsavedChanges] =
+    useState(false);
 
   const [pageCount, setPageCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -546,6 +548,15 @@ function TenderDetailsContent() {
 
 
   function handleTabChange(tab: string) {
+    if (draftHasUnsavedChanges && tab !== "Draft") {
+      const confirmed = window.confirm(
+        "You have unsaved draft changes. Leave without saving?",
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
 
     const nextParams = new URLSearchParams(
       searchParams.toString(),
@@ -825,6 +836,7 @@ function TenderDetailsContent() {
           <DraftTab
             key={tender.id}
             tenderId={tender.id}
+            onDirtyChange={setDraftHasUnsavedChanges}
           />
         )}
 
