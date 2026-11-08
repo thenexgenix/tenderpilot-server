@@ -2,15 +2,45 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { runTenderDraftGeneration } from "@/lib/draft/run-draft-generation";
+import { z } from "zod";
 
 type RouteContext = {
     params: Promise<{ id: string }>;
 };
 
 export async function POST(
-    _request: Request,
+    request: Request,
     { params }: RouteContext,
 ) {
+    const requestSchema = z.object({
+        confirmRegenerate: z.boolean().optional(),
+    });
+
+    let body: unknown = {};
+
+    try {
+        body = await request.json();
+    } catch {
+        body = {};
+    }
+
+    const parsedBody = requestSchema.safeParse(body);
+
+    if (!parsedBody.success) {
+        return NextResponse.json(
+            {
+                error: {
+                    code: "INVALID_REGENERATION_REQUEST",
+                    message: "Invalid draft generation request.",
+                },
+            },
+            { status: 400 },
+        );
+    }
+
+    const confirmRegenerate =
+        parsedBody.data.confirmRegenerate === true;
+
     const user = await getCurrentUser();
 
     if (!user) {
@@ -63,13 +93,17 @@ export async function POST(
         );
     }
 
-    if (tender.draftStatus === "READY") {
+    if (
+        tender.draftStatus === "READY" &&
+        !confirmRegenerate
+    ) {
         return NextResponse.json(
             {
                 error: {
-                    code: "DRAFT_ALREADY_EXISTS",
+                    code:
+                        "DRAFT_REGENERATION_CONFIRMATION_REQUIRED",
                     message:
-                        "A draft already exists. Regeneration confirmation will be added on Day 15.",
+                        "Regeneration confirmation is required.",
                 },
             },
             { status: 409 },
