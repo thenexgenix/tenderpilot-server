@@ -14,6 +14,7 @@ import { Badge, Banner, Button, EmptyState, Skeleton } from "@/components/ui";
 import { RequirementsTab } from "@/components/requirements-tab";
 import { ChecklistTab } from "@/components/checklist-tab";
 import { DraftTab } from "@/components/draft-tab";
+import { ExportTab } from "@/components/export-tab";
 
 type TenderStatus =
   | "DRAFT"
@@ -196,20 +197,6 @@ function errorLabel(errorCode: string | null) {
   }
 
   return errorCode;
-}
-
-function TabPlaceholder({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <section className="space-y-5">
-      <EmptyState title={title} description={description} />
-    </section>
-  );
 }
 
 function ProcessingPanel({
@@ -841,10 +828,7 @@ function TenderDetailsContent() {
         )}
 
         {activeTab === "Export" && (
-          <TabPlaceholder
-            title="Export is not available yet"
-            description="DOCX export will be implemented after draft editing."
-          />
+          <ExportTab tenderId={tender.id} />
         )}
       </div>
     </AppShell>
