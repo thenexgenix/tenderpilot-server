@@ -4,11 +4,18 @@
   --background: #f7faff;
   --foreground: #0f2a47;
   --navy: #0f2a47;
+  --navy-light: #163e66;
   --blue: #2563eb;
   --blue-hover: #1d4ed8;
   --blue-light: #eff6ff;
   --border: #e5e7eb;
   --card: #ffffff;
+  --warning: #d97706;
+  --warning-light: #fef3c7;
+  --error: #dc2626;
+  --error-light: #fee2e2;
+  --success: #059669;
+  --success-light: #ecfdf5;
 }
 
 * {
