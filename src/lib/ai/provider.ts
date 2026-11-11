@@ -44,9 +44,63 @@ type GeminiResponse = {
     }>;
 };
 
+type CompatibleResponse = {
+    choices?: Array<{
+        message?: {
+            content?: unknown;
+        };
+    }>;
+};
+
 const DEFAULT_TIMEOUT_MS = 60_000;
 
-function getModelName() {
+function parseAndValidate<T>(
+    text: string,
+    request: GenerateJsonRequest<T>,
+    providerName: string,
+): T {
+    const trimmedText = text.trim();
+
+    if (!trimmedText) {
+        throw new AiProviderError(
+            "EMPTY_RESPONSE",
+            `The ${providerName} API returned an empty response.`,
+        );
+    }
+
+    let parsed: unknown;
+
+    try {
+        parsed = JSON.parse(trimmedText);
+    } catch {
+        throw new AiProviderError(
+            "MALFORMED_RESPONSE",
+            `The ${providerName} response was not valid JSON.`,
+        );
+    }
+
+    const validation = request.schema.safeParse(parsed);
+
+    if (!validation.success) {
+        const issueSummary = validation.error.issues.map(
+            (issue) => ({
+                path: issue.path.join(".") || "(root)",
+                code: issue.code,
+            }),
+        );
+
+        throw new AiProviderError(
+            "MALFORMED_RESPONSE",
+            `The ${providerName} response did not match the required schema. Issues: ${JSON.stringify(
+                issueSummary,
+            )}`,
+        );
+    }
+
+    return validation.data;
+}
+
+function getGeminiModel() {
     const configuredModel = process.env.AI_MODEL?.trim();
 
     if (!configuredModel) {
@@ -61,7 +115,7 @@ function getModelName() {
         : configuredModel;
 }
 
-function getApiKey() {
+function getGeminiApiKey() {
     const apiKey = process.env.GEMINI_API_KEY?.trim();
 
     if (!apiKey) {
@@ -74,43 +128,73 @@ function getApiKey() {
     return apiKey;
 }
 
-function getResponseText(payload: unknown) {
+function getGeminiResponseText(payload: unknown) {
     const response = payload as GeminiResponse;
 
-    const text = response.candidates
+    return response.candidates
         ?.flatMap((candidate) => candidate.content?.parts ?? [])
         .map((part) => part.text ?? "")
         .join("")
-        .trim();
-
-    return text ?? "";
+        .trim() ?? "";
 }
 
-function createHttpError(status: number) {
+function getCompatibleResponseText(payload: unknown) {
+    const response = payload as CompatibleResponse;
+    const content = response.choices?.[0]?.message?.content;
+
+    if (typeof content === "string") {
+        return content.trim();
+    }
+
+    if (Array.isArray(content)) {
+        return content
+            .map((part) => {
+                if (
+                    typeof part === "object" &&
+                    part !== null &&
+                    "text" in part
+                ) {
+                    const text = (part as { text?: unknown }).text;
+                    return typeof text === "string" ? text : "";
+                }
+
+                return "";
+            })
+            .join("")
+            .trim();
+    }
+
+    return "";
+}
+
+function createHttpError(
+    providerName: string,
+    status: number,
+) {
     if (status === 401 || status === 403) {
         return new AiProviderError(
             "INVALID_KEY",
-            "The Gemini API key was rejected.",
+            `The ${providerName} API key was rejected.`,
         );
     }
 
     if (status === 429) {
         return new AiProviderError(
             "RATE_LIMIT",
-            "The Gemini API rate limit was reached.",
+            `The ${providerName} API rate limit was reached.`,
         );
     }
 
     if (status === 408 || status === 504) {
         return new AiProviderError(
             "TIMEOUT",
-            "The Gemini API request timed out.",
+            `The ${providerName} API request timed out.`,
         );
     }
 
     return new AiProviderError(
         "REQUEST_FAILED",
-        `The Gemini API request failed with HTTP status ${status}.`,
+        `The ${providerName} API request failed with HTTP status ${status}.`,
     );
 }
 
@@ -118,8 +202,8 @@ class GeminiProvider implements AiProvider {
     async generateJson<T>(
         request: GenerateJsonRequest<T>,
     ): Promise<T> {
-        const apiKey = getApiKey();
-        const model = getModelName();
+        const apiKey = getGeminiApiKey();
+        const model = getGeminiModel();
         const timeoutMs = request.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
         const controller = new AbortController();
@@ -166,48 +250,14 @@ class GeminiProvider implements AiProvider {
             }
 
             if (!response.ok) {
-                throw createHttpError(response.status);
+                throw createHttpError("Gemini", response.status);
             }
 
-            const modelText = getResponseText(payload);
-
-            if (!modelText) {
-                throw new AiProviderError(
-                    "EMPTY_RESPONSE",
-                    "The Gemini API returned an empty response.",
-                );
-            }
-
-            let parsed: unknown;
-
-            try {
-                parsed = JSON.parse(modelText);
-            } catch {
-                throw new AiProviderError(
-                    "MALFORMED_RESPONSE",
-                    "The Gemini response was not valid JSON.",
-                );
-            }
-
-            const validation = request.schema.safeParse(parsed);
-
-            if (!validation.success) {
-                const issueSummary = validation.error.issues.map(
-                    (issue) => ({
-                        path: issue.path.join(".") || "(root)",
-                        code: issue.code,
-                    }),
-                );
-
-                throw new AiProviderError(
-                    "MALFORMED_RESPONSE",
-                    `The Gemini response did not match the required schema. Issues: ${JSON.stringify(
-                        issueSummary,
-                    )}`,
-                );
-            }
-
-            return validation.data;
+            return parseAndValidate(
+                getGeminiResponseText(payload),
+                request,
+                "Gemini",
+            );
         } catch (error) {
             if (error instanceof AiProviderError) {
                 throw error;
@@ -233,17 +283,253 @@ class GeminiProvider implements AiProvider {
     }
 }
 
-export function createAiProvider(): AiProvider {
-    const provider = (
-        process.env.AI_PROVIDER ?? "gemini"
-    ).trim().toLowerCase();
+type CompatibleProviderConfig = {
+    name: string;
+    apiKeyEnvironmentVariable: string;
+    modelEnvironmentVariable: string;
+    defaultModel: string;
+    endpoint: string;
+    extraHeaders?: Record<string, string>;
+};
 
-    if (provider === "gemini") {
-        return new GeminiProvider();
+class OpenAiCompatibleProvider implements AiProvider {
+    constructor(
+        private readonly config: CompatibleProviderConfig,
+    ) { }
+
+    async generateJson<T>(
+        request: GenerateJsonRequest<T>,
+    ): Promise<T> {
+        const apiKey = process.env[
+            this.config.apiKeyEnvironmentVariable
+        ]?.trim();
+
+        if (!apiKey) {
+            throw new AiProviderError(
+                "CONFIGURATION_ERROR",
+                `${this.config.apiKeyEnvironmentVariable} is not configured.`,
+            );
+        }
+
+        const model =
+            process.env[
+                this.config.modelEnvironmentVariable
+            ]?.trim() || this.config.defaultModel;
+
+        const timeoutMs = request.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+        const controller = new AbortController();
+
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+        }, timeoutMs);
+
+        try {
+            const response = await fetch(
+                this.config.endpoint,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${apiKey}`,
+                        ...this.config.extraHeaders,
+                    },
+                    body: JSON.stringify({
+                        model,
+                        messages: [
+                            {
+                                role: "system",
+                                content: request.system,
+                            },
+                            {
+                                role: "user",
+                                content: request.user,
+                            },
+                        ],
+                        temperature: 0,
+                        ...(this.config.name === "Groq" &&
+                            model.startsWith("openai/gpt-oss-")
+                            ? {
+                                include_reasoning: false,
+                                reasoning_effort: "low",
+                            }
+                            : {}),
+                        response_format: {
+                            type: "json_object",
+                        },
+                    }),
+                    signal: controller.signal,
+                },
+            );
+
+            const responseText = await response.text();
+
+            let payload: unknown = null;
+
+            try {
+                payload = JSON.parse(responseText);
+            } catch {
+                payload = null;
+            }
+
+            if (!response.ok) {
+                console.warn("AI provider HTTP failure.", {
+                    provider: this.config.name,
+                    status: response.status,
+                    body: responseText.slice(0, 1000),
+                });
+
+                throw createHttpError(
+                    this.config.name,
+                    response.status,
+                );
+            }
+
+            return parseAndValidate(
+                getCompatibleResponseText(payload),
+                request,
+                this.config.name,
+            );
+        } catch (error) {
+            if (error instanceof AiProviderError) {
+                throw error;
+            }
+
+            if (
+                error instanceof Error &&
+                error.name === "AbortError"
+            ) {
+                throw new AiProviderError(
+                    "TIMEOUT",
+                    `The ${this.config.name} API request timed out.`,
+                );
+            }
+
+            throw new AiProviderError(
+                "REQUEST_FAILED",
+                `Unable to reach the ${this.config.name} API.`,
+            );
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+}
+
+class FallbackProvider implements AiProvider {
+    constructor(
+        private readonly providers: Array<{
+            name: string;
+            provider: AiProvider;
+        }>,
+    ) { }
+
+    async generateJson<T>(
+        request: GenerateJsonRequest<T>,
+    ): Promise<T> {
+        let lastError: AiProviderError | null = null;
+
+        for (const entry of this.providers) {
+            try {
+                return await entry.provider.generateJson(request);
+            } catch (error) {
+                if (error instanceof AiProviderError) {
+                    lastError = new AiProviderError(
+                        error.code,
+                        `${entry.name}: ${error.message}`,
+                    );
+                    console.warn("AI provider attempt failed.", {
+                        provider: entry.name,
+                        code: error instanceof AiProviderError
+                            ? error.code
+                            : "REQUEST_FAILED",
+                        message:
+                            error instanceof Error
+                                ? error.message
+                                : "Unknown provider error.",
+                    });
+                } else {
+                    lastError = new AiProviderError(
+                        "REQUEST_FAILED",
+                        `${entry.name}: provider request failed.`,
+                    );
+                }
+            }
+        }
+
+        throw (
+            lastError ??
+            new AiProviderError(
+                "CONFIGURATION_ERROR",
+                "No AI providers are configured.",
+            )
+        );
+    }
+}
+
+function createProvider(
+    providerName: string,
+): { name: string; provider: AiProvider } {
+    if (providerName === "gemini") {
+        return {
+            name: "Gemini",
+            provider: new GeminiProvider(),
+        };
+    }
+
+    if (providerName === "groq") {
+        return {
+            name: "Groq",
+            provider: new OpenAiCompatibleProvider({
+                name: "Groq",
+                apiKeyEnvironmentVariable: "GROQ_API_KEY",
+                modelEnvironmentVariable: "GROQ_MODEL",
+                defaultModel: "openai/gpt-oss-20b",
+                endpoint:
+                    "https://api.groq.com/openai/v1/chat/completions",
+            }),
+        };
+    }
+
+    if (providerName === "openrouter") {
+        return {
+            name: "OpenRouter",
+            provider: new OpenAiCompatibleProvider({
+                name: "OpenRouter",
+                apiKeyEnvironmentVariable:
+                    "OPENROUTER_API_KEY",
+                modelEnvironmentVariable: "OPENROUTER_MODEL",
+                defaultModel: "openrouter/free",
+                endpoint:
+                    "https://openrouter.ai/api/v1/chat/completions",
+                extraHeaders: {
+                    "HTTP-Referer": "http://localhost:3000",
+                    "X-Title": "TenderPilot AI",
+                },
+            }),
+        };
     }
 
     throw new AiProviderError(
         "CONFIGURATION_ERROR",
-        `Unsupported AI provider: ${provider}`,
+        `Unsupported AI provider: ${providerName}`,
     );
+}
+
+export function createAiProvider(): AiProvider {
+    const configuredChain =
+        process.env.AI_PROVIDER_CHAIN?.trim() ||
+        process.env.AI_PROVIDER?.trim() ||
+        "gemini";
+
+    const providerNames = configuredChain
+        .split(",")
+        .map((provider) => provider.trim().toLowerCase())
+        .filter(Boolean);
+
+    const providers = providerNames.map(createProvider);
+
+    if (providers.length === 1) {
+        return providers[0].provider;
+    }
+
+    return new FallbackProvider(providers);
 }
