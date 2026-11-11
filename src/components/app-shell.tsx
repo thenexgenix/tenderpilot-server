@@ -9,6 +9,20 @@ import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 // Primary navigation links with corresponding vector icons and path matching rules
 const navigation = [
   {
+    label: "Home",
+    href: "/",
+    icon: (
+      <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.75}
+          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+        />
+      </svg>
+    ),
+  },
+  {
     label: "Dashboard",
     href: "/dashboard",
     icon: (
@@ -17,7 +31,7 @@ const navigation = [
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={1.75}
-          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
         />
       </svg>
     ),
@@ -31,7 +45,7 @@ const navigation = [
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={1.75}
-          d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          d="M12 4v16m8-8H4"
         />
       </svg>
     ),
@@ -85,6 +99,9 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
   // Active status evaluation based on current URL pathname
   function isItemActive(href: string) {
+    if (href === "/") {
+      return pathname === "/";
+    }
     if (href === "/dashboard") {
       return (
         pathname === "/dashboard" ||
@@ -106,17 +123,17 @@ function AppShellContent({ children }: { children: ReactNode }) {
       {/* Desktop Persistent Sidebar */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-hidden border-r border-[#0f2a47]/30 bg-[#0f2a47] bg-[url('/images/sidebar-bg.png')] bg-[length:100%_100%] bg-top bg-no-repeat text-white shadow-xl lg:flex">
         <div className="flex h-20 items-center gap-3 border-b border-white/10 px-6">
-          <Link href="/dashboard" className="flex items-center gap-3">
+          <Link href="/" title="Return to TenderPilot AI Home" className="flex items-center gap-3 group">
             <Image
               src="/images/tenderpilot-symbol.png"
               alt="TenderPilot AI symbol"
               width={291}
               height={233}
-              className="h-[30px] w-auto object-contain"
+              className="h-[30px] w-auto object-contain transition-transform group-hover:scale-105"
               priority
             />
             <div className="flex flex-col">
-              <span className="text-lg font-bold tracking-tight text-white">
+              <span className="text-lg font-bold tracking-tight text-white group-hover:text-blue-300 transition-colors">
                 TenderPilot <span className="text-blue-400">AI</span>
               </span>
               <span className="text-[10px] font-medium tracking-wider text-slate-400 uppercase">
@@ -256,6 +273,10 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
             {/* Breadcrumb path */}
             <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-400">
+              <Link href="/" className="hover:text-blue-600 transition-colors">
+                Home
+              </Link>
+              <span>/</span>
               <Link href="/dashboard" className="hover:text-blue-600 transition-colors">
                 Dashboard
               </Link>

@@ -59,7 +59,7 @@ function contentParagraphs(content: string) {
 
         return new Paragraph({
             children,
-            widowControl: true,
+            
             spacing: {
                 line: 240,
                 after: 140,
@@ -105,7 +105,7 @@ export async function buildDraftDocx(
                         size: 18,
                         color: COLORS.muted,
                     }),
-                    PageNumber.CURRENT,
+                    new TextRun({ children: [PageNumber.CURRENT], font: 'Arial', size: 18, color: COLORS.muted }),
                 ],
             }),
         ],
@@ -171,7 +171,7 @@ export async function buildDraftDocx(
                 heading: HeadingLevel.HEADING_1,
                 pageBreakBefore: index === 0,
                 keepNext: true,
-                widowControl: true,
+                
             }),
         );
 
@@ -197,7 +197,7 @@ export async function buildDraftDocx(
                             line: 240,
                             after: 140,
                         },
-                        widowControl: true,
+                        
                     },
                 },
                 title: {
@@ -221,7 +221,7 @@ export async function buildDraftDocx(
                             after: 160,
                         },
                         keepNext: true,
-                        widowControl: true,
+                        
                     },
                 },
             },

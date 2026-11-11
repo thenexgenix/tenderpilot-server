@@ -7,9 +7,10 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
 } from "react";
 
-// Button variants for primary calls to action, secondary controls, ghost buttons, and destructive actions
+/* Button variants for primary calls to action, secondary controls, ghost buttons, and destructive actions */
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -72,6 +73,36 @@ export function Input({
   );
 }
 
+export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  label?: string;
+  error?: string;
+  hint?: string;
+};
+
+export function Textarea({
+  label,
+  error,
+  hint,
+  id,
+  className = "",
+  ...props
+}: TextareaProps) {
+  return (
+    <label className="flex w-full flex-col gap-1.5 text-sm font-medium text-[#0f2a47]">
+      {label && <span className="text-slate-700">{label}</span>}
+      <textarea
+        id={id}
+        className={`min-h-28 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-[#0f2a47] shadow-sm transition placeholder:text-slate-400 focus:border-[#2563eb] focus:bg-white focus:ring-4 focus:ring-blue-100 focus:outline-none ${
+          error ? "border-red-300 focus:border-red-500 focus:ring-red-100" : ""
+        } ${className}`}
+        {...props}
+      />
+      {hint && !error && <span className="text-xs text-slate-400">{hint}</span>}
+      {error && <span className="text-xs font-semibold text-red-600">{error}</span>}
+    </label>
+  );
+}
+
 export type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
   label?: string;
 };
@@ -106,7 +137,7 @@ export function Select({
 
 export type BadgeVariant = "blue" | "green" | "amber" | "red" | "gray";
 
-// Status configuration providing color tokens and matching status indicator dots
+/* Status configuration providing color tokens and matching status indicator dots */
 const badgeConfig: Record<
   BadgeVariant,
   { container: string; dot: string }
@@ -158,6 +189,48 @@ export function Badge({
       )}
       {children}
     </span>
+  );
+}
+
+/* Tender status configuration mapping lifecycle states to user-facing labels and color variants */
+export type TenderStatusKey =
+  | "DRAFT"
+  | "PROCESSING"
+  | "ANALYZED"
+  | "ATTENTION_REQUIRED"
+  | "PROCESSING_FAILED";
+
+export function getTenderStatusLabel(status: TenderStatusKey): string {
+  if (status === "ATTENTION_REQUIRED") {
+    return "ATTENTION REQUIRED";
+  }
+  if (status === "PROCESSING_FAILED") {
+    return "PROCESSING FAILED";
+  }
+  return status;
+}
+
+export function getTenderStatusVariant(status: TenderStatusKey): BadgeVariant {
+  if (status === "ANALYZED") {
+    return "green";
+  }
+  if (status === "PROCESSING") {
+    return "blue";
+  }
+  if (status === "ATTENTION_REQUIRED") {
+    return "amber";
+  }
+  if (status === "PROCESSING_FAILED") {
+    return "red";
+  }
+  return "gray";
+}
+
+export function StatusBadge({ status }: { status: TenderStatusKey }) {
+  return (
+    <Badge variant={getTenderStatusVariant(status)}>
+      {getTenderStatusLabel(status)}
+    </Badge>
   );
 }
 
@@ -267,7 +340,7 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3">
           <h2 className="text-lg font-bold text-[#0f2a47]">{title}</h2>
