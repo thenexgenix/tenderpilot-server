@@ -3,6 +3,10 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { buildDraftDocx } from "@/lib/export/build-draft-docx";
+import {
+    buildTenderIntelligence,
+    type IntelligenceReference,
+} from "@/lib/intelligence/reference-tender-intelligence";
 
 type RouteContext = {
     params: Promise<{ id: string }>;
@@ -101,7 +105,19 @@ export async function POST(
             title: true,
             issuerName: true,
             reference: true,
+            sourceType: true,
             draftStatus: true,
+            requirements: {
+                orderBy: { displayId: "asc" },
+                select: {
+                    displayId: true,
+                    category: true,
+                    text: true,
+                    obligation: true,
+                    verification: true,
+                    pageNumber: true,
+                },
+            },
             draft: {
                 orderBy: {
                     position: "asc",
@@ -144,6 +160,39 @@ export async function POST(
     }
 
     try {
+        const references = (await prisma.tender.findMany({
+            where: {
+                ownerId: user.id,
+                deletedAt: null,
+                sourceType: {
+                    in: ["PUBLIC_REFERENCE", "SYNTHETIC_REFERENCE"],
+                },
+            },
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                title: true,
+                issuerName: true,
+                sourceType: true,
+                requirements: {
+                    orderBy: { displayId: "asc" },
+                    select: {
+                        displayId: true,
+                        category: true,
+                        text: true,
+                        obligation: true,
+                        verification: true,
+                        pageNumber: true,
+                    },
+                },
+            },
+        })) as IntelligenceReference[];
+
+        const strategy =
+            tender.sourceType === "ACTIVE"
+                ? buildTenderIntelligence(tender, references)
+                : undefined;
+
         const documentBuffer = await buildDraftDocx({
             tender: {
                 title: tender.title,
@@ -151,6 +200,7 @@ export async function POST(
                 reference: tender.reference,
             },
             sections: tender.draft,
+            strategy,
         });
 
         const fileName = `${safeFileName(tender.title)}-proposal.docx`;

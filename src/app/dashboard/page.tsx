@@ -84,7 +84,7 @@ function MetricStatCard({
     blue: {
       bg: "bg-blue-50/80 text-blue-700 border-blue-200/80",
       accent: "text-blue-700",
-      activeRing: "ring-2 ring-blue-500 border-blue-400",
+      activeRing: "ring-2 ring-violet-300 border-violet-400",
     },
     amber: {
       bg: "bg-amber-50/80 text-amber-800 border-amber-200/80",
@@ -110,11 +110,10 @@ function MetricStatCard({
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
-      className={`group relative flex items-center justify-between overflow-hidden rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all duration-200 ${
-        onClick
+      className={`group relative flex min-w-0 items-center justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_12px_30px_rgb(35_28_84/5%)] transition-all duration-200 ${onClick
           ? "cursor-pointer hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
           : ""
-      } ${isActive ? style.activeRing : ""}`}
+        } ${isActive ? style.activeRing : ""}`}
     >
       <div className="flex items-center gap-4">
         <div
@@ -277,28 +276,64 @@ function DashboardContent() {
 
   return (
     <AppShell>
-      <div className="space-y-7">
+      <div className="min-w-0 space-y-7">
         {/* Workspace context header banner */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50/80 px-3 py-1 text-xs font-bold text-blue-700 uppercase shadow-2xs">
-              <span className="h-2 w-2 rounded-full bg-blue-600" />
-              Tender Portfolio & Compliance Hub
+        {/* SaaS workspace hero */}
+        <section className="tp-hero p-5 sm:p-8 lg:p-10">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-violet-200/40 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 left-1/3 h-40 w-40 rounded-full bg-cyan-200/30 blur-3xl" />
+
+          <div className="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wide text-violet-700 shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-violet-500" />
+                Tender intelligence workspace
+              </div>
+
+              <h1 className="mt-5 max-w-2xl text-3xl font-black leading-tight tracking-tight text-[#121936] sm:text-4xl lg:text-5xl">
+                {getTimeGreeting()}, review tenders
+                <span className="tp-yellow-accent ml-2">with confidence</span>
+              </h1>
+
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
+                Track tender requirements, verify source citations, and prepare your next
+                submission from one focused workspace.
+              </p>
+
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <Link
+                  href="/tenders/new"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#6857ee] px-5 text-sm font-bold text-white shadow-lg shadow-violet-200 transition hover:-translate-y-0.5 hover:bg-[#5747d7]"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Create new tender
+                </Link>
+
+                <span className="inline-flex items-center gap-2 rounded-xl border border-white/80 bg-white/70 px-4 py-3 text-xs font-semibold text-slate-600">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  AI verification active
+                </span>
+              </div>
             </div>
 
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#0f2a47] sm:text-3xl lg:text-4xl">
-              {getTimeGreeting()}, review with confidence
-            </h1>
-
-            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-500">
-              AI suggestions extract mandatory criteria with source citations. Always verify important clauses against
-              the original tender document.
-            </p>
+            <div className="tp-soft-panel w-full max-w-xs rounded-2xl p-4 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wide text-violet-700">
+                Workspace signal
+              </p>
+              <p className="mt-2 text-2xl font-black text-[#121936]">
+                {analyzedCount}
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                tenders have verified requirements
+              </p>
+            </div>
           </div>
-        </div>
+        </section>
 
         {/* High-level metric cards with interactive filter toggles */}
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricStatCard
             icon={
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -357,9 +392,9 @@ function DashboardContent() {
         </section>
 
         {/* Main data card container */}
-        <section className="rounded-xl border border-slate-200/90 bg-white shadow-xs">
+        <section className="tp-section min-w-0 overflow-hidden">
           {/* Card toolbar with title and status filter tabs */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 p-4 sm:p-6">
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-bold text-[#0f2a47]">Your Tenders</h2>
               <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
@@ -372,51 +407,47 @@ function DashboardContent() {
               <button
                 type="button"
                 onClick={() => setStatusFilter("ALL")}
-                className={`rounded-md px-3 py-1 font-semibold transition ${
-                  statusFilter === "ALL"
+                className={`rounded-md px-3 py-1 font-semibold transition ${statusFilter === "ALL"
                     ? "bg-white text-blue-700 shadow-2xs"
                     : "text-slate-600 hover:text-[#0f2a47]"
-                }`}
+                  }`}
               >
                 All
               </button>
               <button
                 type="button"
                 onClick={() => setStatusFilter("ANALYZED")}
-                className={`rounded-md px-3 py-1 font-semibold transition ${
-                  statusFilter === "ANALYZED"
+                className={`rounded-md px-3 py-1 font-semibold transition ${statusFilter === "ANALYZED"
                     ? "bg-white text-emerald-700 shadow-2xs"
                     : "text-slate-600 hover:text-[#0f2a47]"
-                }`}
+                  }`}
               >
                 Analyzed ({analyzedCount})
               </button>
               <button
                 type="button"
                 onClick={() => setStatusFilter("NEEDS_REVIEW")}
-                className={`rounded-md px-3 py-1 font-semibold transition ${
-                  statusFilter === "NEEDS_REVIEW"
+                className={`rounded-md px-3 py-1 font-semibold transition ${statusFilter === "NEEDS_REVIEW"
                     ? "bg-white text-amber-800 shadow-2xs"
                     : "text-slate-600 hover:text-[#0f2a47]"
-                }`}
+                  }`}
               >
                 Needs Review ({needsReviewCount})
               </button>
               <button
                 type="button"
                 onClick={() => setStatusFilter("DRAFT")}
-                className={`rounded-md px-3 py-1 font-semibold transition ${
-                  statusFilter === "DRAFT"
+                className={`rounded-md px-3 py-1 font-semibold transition ${statusFilter === "DRAFT"
                     ? "bg-white text-slate-800 shadow-2xs"
                     : "text-slate-600 hover:text-[#0f2a47]"
-                }`}
+                  }`}
               >
                 Drafts ({draftsCount})
               </button>
             </div>
           </div>
 
-          <div className="p-5">
+          <div className="p-4 sm:p-6">
             {errorMessage && (
               <div className="space-y-3">
                 <Banner variant="error">{errorMessage}</Banner>
@@ -544,37 +575,39 @@ function DashboardContent() {
                     <Link
                       key={tender.id}
                       href={`/tenders/${tender.id}`}
-                      className="group block rounded-xl border border-slate-200 bg-white p-4 shadow-xs transition hover:border-blue-300 hover:shadow-md"
+                      className="group block min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-xs transition hover:border-blue-300 hover:shadow-md"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex min-w-0 flex-1 items-center gap-2.5">
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                           </div>
-                          <div>
-                            <p className="font-bold text-sm text-[#0f2a47] group-hover:text-blue-700 transition-colors">
+                          <div className="min-w-0">
+                            <p className="break-words text-sm font-bold text-[#0f2a47] transition-colors group-hover:text-blue-700">
                               {tender.title}
                             </p>
-                            <p className="text-xs text-slate-500 font-mono">
+                            <p className="break-words font-mono text-xs text-slate-500">
                               {tender.reference || "No ref"} · {tender.issuerName}
                             </p>
                           </div>
                         </div>
 
-                        <StatusBadge status={tender.status} />
+                        <div className="shrink-0">
+                          <StatusBadge status={tender.status} />
+                        </div>
                       </div>
 
                       <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5 text-xs text-slate-500">
-                        <span className="flex items-center gap-1">
+                        <span className="flex min-w-0 items-center gap-1 break-words">
                           <svg className="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
                           {formatDate(tender.deadlineAt)}
                         </span>
 
-                        <span className="font-semibold text-blue-600 group-hover:underline">
+                        <span className="shrink-0 font-semibold text-blue-600 group-hover:underline">
                           Open Workspace →
                         </span>
                       </div>

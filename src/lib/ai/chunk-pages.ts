@@ -9,8 +9,8 @@ export type AnalysisChunk = {
     text: string;
 };
 
-export const MAX_CHARS_PER_CHUNK = 12_000;
-export const MAX_AI_CHUNKS_PER_TENDER = 12;
+export const MAX_CHARS_PER_CHUNK = 6_000;
+export const MAX_AI_CHUNKS_PER_TENDER = 24;
 
 export class AiChunkLimitError extends Error {
     constructor(message: string) {

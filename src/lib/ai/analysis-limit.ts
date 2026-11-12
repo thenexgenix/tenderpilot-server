@@ -55,3 +55,23 @@ export async function reserveDailyAnalysisSlot(
         };
     });
 }
+
+export async function releaseDailyAnalysisSlot(
+    userId: string,
+    usageDate: string,
+) {
+    return prisma.aiAnalysisUsage.updateMany({
+        where: {
+            userId,
+            usageDate,
+            analysisCount: {
+                gt: 0,
+            },
+        },
+        data: {
+            analysisCount: {
+                decrement: 1,
+            },
+        },
+    });
+}

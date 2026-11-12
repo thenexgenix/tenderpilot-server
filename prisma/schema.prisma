@@ -22,6 +22,12 @@ enum DraftStatus {
   FAILED
 }
 
+enum TenderSourceType {
+  ACTIVE
+  PUBLIC_REFERENCE
+  SYNTHETIC_REFERENCE
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -41,6 +47,7 @@ model Tender {
   reference  String?
   deadlineAt DateTime?
   notes      String?
+  sourceType TenderSourceType @default(ACTIVE)
 
   fileStorageKey   String?   @unique
   fileOriginalName String?

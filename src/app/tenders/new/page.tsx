@@ -7,7 +7,13 @@ import { AppShell } from "@/components/app-shell";
 import { Banner, Button, Input } from "@/components/ui";
 
 type FieldName =
-  "title" | "issuerName" | "reference" | "deadlineAt" | "notes" | "file";
+  | "title"
+  | "issuerName"
+  | "reference"
+  | "sourceType"
+  | "deadlineAt"
+  | "notes"
+  | "file";
 
 type CreateTenderResponse = {
   data?: {
@@ -198,6 +204,27 @@ export default function NewTenderPage() {
               error={fieldErrors.reference}
               maxLength={100}
             />
+
+            <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+              <span>Document role</span>
+              <select
+                name="sourceType"
+                defaultValue="ACTIVE"
+                className="min-h-11 rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-[#0f2a47] shadow-sm outline-none focus:border-[#2563eb] focus:ring-4 focus:ring-blue-100"
+              >
+                <option value="ACTIVE">Active tender to bid on</option>
+                <option value="PUBLIC_REFERENCE">
+                  Public reference tender
+                </option>
+                <option value="SYNTHETIC_REFERENCE">
+                  Synthetic benchmark for testing
+                </option>
+              </select>
+              <span className="text-xs font-normal text-slate-500">
+                Reference documents inform comparisons; they are not company
+                experience.
+              </span>
+            </label>
 
             <Input
               label="Deadline"

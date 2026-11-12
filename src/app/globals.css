@@ -54,3 +54,138 @@ textarea:focus-visible {
   outline: 3px solid rgb(37 99 235 / 25%);
   outline-offset: 2px;
 }
+
+/* TenderPilot SaaS visual system */
+.tp-shell-bg {
+  background:
+    radial-gradient(circle at 92% 4%, rgb(221 214 254 / 30%), transparent 28rem),
+    linear-gradient(180deg, #fbfcff 0%, #f7f8ff 100%);
+}
+
+.tp-section {
+  border: 1px solid #e8e9f2;
+  border-radius: 1.5rem;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgb(35 28 84 / 7%);
+}
+
+.tp-hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e5e0ff;
+  border-radius: 2rem;
+  background:
+    radial-gradient(circle at 92% 15%, rgb(197 187 255 / 40%), transparent 14rem),
+    linear-gradient(135deg, #f5f1ff 0%, #ffffff 56%, #effaff 100%);
+}
+
+.tp-yellow-accent {
+  text-decoration: underline;
+  text-decoration-color: #f5d547;
+  text-decoration-thickness: 0.3em;
+  text-underline-offset: -0.08em;
+  text-decoration-skip-ink: none;
+}
+
+.tp-soft-panel {
+  border: 1px solid #e4e8ff;
+  background: linear-gradient(135deg, #f3f0ff 0%, #f4fbff 100%);
+}
+
+.tp-landing-hero {
+  background:
+    radial-gradient(circle at 78% 18%, rgb(204 194 255 / 38%), transparent 19rem),
+    radial-gradient(circle at 5% 75%, rgb(186 240 255 / 28%), transparent 17rem),
+    linear-gradient(180deg, #fbfaff 0%, #ffffff 58%, #f7fbff 100%);
+}
+
+.tp-lilac-band {
+  background:
+    radial-gradient(circle at 12% 20%, rgb(207 196 255 / 42%), transparent 20rem),
+    linear-gradient(135deg, #f7f3ff 0%, #ffffff 52%, #eef9ff 100%);
+}
+
+.tp-cyan-band {
+  background:
+    radial-gradient(circle at 88% 18%, rgb(175 239 255 / 40%), transparent 22rem),
+    linear-gradient(135deg, #effaff 0%, #ffffff 52%, #f4f0ff 100%);
+}
+
+.tp-cream-band {
+  background:
+    radial-gradient(circle at 85% 18%, rgb(255 225 159 / 30%), transparent 18rem),
+    linear-gradient(135deg, #fffaf0 0%, #ffffff 55%, #f6f2ff 100%);
+}
+
+.tp-section-grid {
+  background-image:
+    linear-gradient(rgb(113 97 245 / 5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(113 97 245 / 5%) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.tp-orb-violet {
+  position: absolute;
+  height: 18rem;
+  width: 18rem;
+  border-radius: 9999px;
+  background: rgb(176 158 255 / 32%);
+  filter: blur(8px);
+}
+
+.tp-orb-cyan {
+  position: absolute;
+  height: 16rem;
+  width: 16rem;
+  border-radius: 9999px;
+  background: rgb(100 224 255 / 28%);
+  filter: blur(6px);
+}
+
+.tp-starburst {
+  height: 7rem;
+  width: 7rem;
+  background: #f5d547;
+  clip-path: polygon(
+    50% 0%,
+    61% 34%,
+    86% 14%,
+    70% 40%,
+    100% 50%,
+    70% 60%,
+    86% 86%,
+    61% 66%,
+    50% 100%,
+    39% 66%,
+    14% 86%,
+    30% 60%,
+    0% 50%,
+    30% 40%,
+    14% 14%,
+    39% 34%
+  );
+  opacity: 0.9;
+}
+
+.tp-blob-cyan {
+  height: 10rem;
+  width: 15rem;
+  background: #baf3ff;
+  clip-path: polygon(8% 32%, 28% 8%, 65% 2%, 96% 25%, 88% 70%, 62% 92%, 24% 82%, 2% 58%);
+  opacity: 0.7;
+  transform: rotate(-12deg);
+}
+
+.tp-dot-grid {
+  background-image: radial-gradient(rgb(113 97 245 / 28%) 1.5px, transparent 1.5px);
+  background-size: 18px 18px;
+}
+
+.tp-wave {
+  pointer-events: none;
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 6rem;
+}
