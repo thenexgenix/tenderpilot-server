@@ -7,6 +7,9 @@ export const createTenderSchema = z.object({
   title: z.string().trim().min(3).max(200),
   issuerName: z.string().trim().min(1).max(200),
   reference: optionalText(100),
+  sourceType: z
+    .enum(["ACTIVE", "PUBLIC_REFERENCE", "SYNTHETIC_REFERENCE"])
+    .default("ACTIVE"),
   deadlineAt: z
     .string()
     .optional()

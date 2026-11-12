@@ -163,11 +163,35 @@ const features = [
 /* Mockup tab identifiers for the interactive hero frame preview */
 type MockupTab = "requirements" | "checklist" | "draft" | "export";
 
+function SectionWave({
+  fill,
+  flip = false,
+}: {
+  fill: string;
+  flip?: boolean;
+}) {
+  return (
+    <div className={`tp-wave ${flip ? "rotate-180" : ""}`} aria-hidden="true">
+      <svg
+        className="h-full w-full"
+        viewBox="0 0 1440 120"
+        preserveAspectRatio="none"
+      >
+        <path
+          fill={fill}
+          d="M0 54C180 112 320 112 500 54C680-4 820-4 1000 54C1180 112 1260 112 1440 54V120H0Z"
+        />
+      </svg>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [activeMockupTab, setActiveMockupTab] = useState<MockupTab>("requirements");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   /* Session state detection on mount */
   useEffect(() => {
@@ -222,7 +246,7 @@ export default function LandingPage() {
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-8 md:flex">
+          <nav className="hidden items-center gap-8 lg:flex">
             <a href="#workflow" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition">
               Workflow
             </a>
@@ -237,7 +261,24 @@ export default function LandingPage() {
             </a>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen((open) => !open)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#121936] shadow-sm lg:hidden"
+            aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={mobileNavOpen}
+          >
+            {mobileNavOpen ? (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+          <div className="hidden items-center gap-3 lg:flex">
             {isAuthLoading ? (
               <div className="h-9 w-24 rounded-lg bg-slate-100 animate-pulse" />
             ) : sessionUser ? (
@@ -245,7 +286,7 @@ export default function LandingPage() {
               <div className="flex items-center gap-2.5">
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-b from-[#2563eb] to-[#1d4ed8] px-3.5 py-2 text-xs font-semibold text-white shadow-sm border-t border-blue-400/30 hover:from-[#1d4ed8] hover:to-[#1742b6] transition-all"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-b from-[#2563eb] to-[#1d4ed8] px-3.5 py-2 text-xs font-semibold text-white shadow-sm border-t border-blue-400/30 hover:from-[#6252e6] hover:to-[#4939c3] transition-all"
                 >
                   <span>Workspace</span>
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -276,7 +317,7 @@ export default function LandingPage() {
 
                 <Link
                   href="/register"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-b from-[#2563eb] to-[#1d4ed8] px-4 py-2 text-xs font-semibold text-white shadow-sm border-t border-blue-400/30 hover:from-[#1d4ed8] hover:to-[#1742b6] hover:shadow transition-all"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-b from-[#2563eb] to-[#1d4ed8] px-4 py-2 text-xs font-semibold text-white shadow-sm border-t border-blue-400/30 hover:from-[#6252e6] hover:to-[#4939c3] hover:shadow transition-all"
                 >
                   <span>Register</span>
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -287,27 +328,112 @@ export default function LandingPage() {
             )}
           </div>
         </div>
+        {mobileNavOpen && (
+          <div className="border-t border-slate-200 bg-white px-4 py-4 shadow-sm lg:hidden">
+            <nav className="mx-auto flex max-w-7xl flex-col gap-1">
+              <a
+                href="#workflow"
+                onClick={() => setMobileNavOpen(false)}
+                className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-violet-50 hover:text-violet-700"
+              >
+                Workflow
+              </a>
+
+              <a
+                href="#product-preview"
+                onClick={() => setMobileNavOpen(false)}
+                className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-violet-50 hover:text-violet-700"
+              >
+                Product Preview
+              </a>
+
+              <a
+                href="#features"
+                onClick={() => setMobileNavOpen(false)}
+                className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-violet-50 hover:text-violet-700"
+              >
+                Features
+              </a>
+
+              <a
+                href="#guidelines"
+                onClick={() => setMobileNavOpen(false)}
+                className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-violet-50 hover:text-violet-700"
+              >
+                Guidelines
+              </a>
+
+              <a
+                href="#faq"
+                onClick={() => setMobileNavOpen(false)}
+                className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-violet-50 hover:text-violet-700"
+              >
+                FAQ
+              </a>
+
+              <div className="mt-2 flex gap-2 border-t border-slate-200 pt-3">
+                {isAuthLoading ? (
+                  <div className="h-9 w-24 rounded-lg bg-slate-100 animate-pulse" />
+                ) : sessionUser ? (
+                  <>
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setMobileNavOpen(false)}
+                      className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-center text-xs font-semibold text-white"
+                    >
+                      Workspace
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => signOut({ callbackUrl: "/" })}
+                      className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600"
+                    >
+                      Sign Out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      onClick={() => setMobileNavOpen(false)}
+                      className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-center text-xs font-semibold text-[#0f2a47]"
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      href="/register"
+                      onClick={() => setMobileNavOpen(false)}
+                      className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-center text-xs font-semibold text-white"
+                    >
+                      Register
+                    </Link>
+                  </>
+                )}
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* Hero section with split layout: left headline/CTA, right authentic photo-frame mockup */}
-      <section className="relative overflow-hidden pt-12 pb-20 sm:pt-16 sm:pb-24 border-b border-slate-200/80 bg-gradient-to-b from-[#f7faff] via-white to-[#f7faff]">
+      <section className="tp-landing-hero relative overflow-hidden border-b border-slate-200/80 pt-14 pb-20 sm:pt-20 sm:pb-28">
         {/* Subtle ambient lighting decorations */}
         <div className="pointer-events-none absolute -top-24 right-1/4 h-96 w-96 rounded-full bg-blue-400/10 blur-3xl" />
         <div className="pointer-events-none absolute top-1/3 -left-20 h-72 w-72 rounded-full bg-amber-400/10 blur-3xl" />
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-8">
+          <div className="grid min-w-0 items-center gap-12 lg:grid-cols-12 lg:gap-8">
             {/* Left side: Hero textual content and call to action buttons */}
-            <div className="lg:col-span-6 xl:col-span-6">
+            <div className="min-w-0 lg:col-span-6 xl:col-span-6">
               {/* Premium category tag with burnished gold accent */}
-              <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/60 bg-amber-50/70 px-3.5 py-1 text-xs font-bold text-amber-900 shadow-xs">
-                <span className="flex h-2 w-2 rounded-full bg-amber-500 ring-4 ring-amber-400/20" />
+              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50/80 px-3.5 py-1 text-xs font-bold text-violet-800 shadow-sm">
+                <span className="flex h-2 w-2 rounded-full bg-violet-500 ring-4 ring-violet-400/20" />
                 <span className="tracking-wide">Institutional Tender Intelligence</span>
               </div>
 
-              <h1 className="mt-5 text-3xl font-extrabold tracking-tight text-[#0f2a47] sm:text-4xl lg:text-5xl leading-[1.12]">
+              <h1 className="mt-5 max-w-2xl break-words text-4xl font-black leading-[1.08] tracking-tight text-[#121936] sm:text-5xl lg:text-6xl">
                 Turn 100+ Page Tenders into{" "}
-                <span className="relative inline-block bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 bg-clip-text text-transparent">
+                <span className="relative inline bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
                   Winning Proposals
                 </span>
               </h1>
@@ -321,7 +447,7 @@ export default function LandingPage() {
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Link
                   href={sessionUser ? "/dashboard" : "/register"}
-                  className="group inline-flex min-h-12 items-center justify-center gap-2.5 rounded-lg bg-gradient-to-b from-[#2563eb] to-[#1d4ed8] px-6 text-sm font-semibold tracking-wide text-white shadow-[0_4px_14px_rgba(37,99,235,0.35)] border-t border-blue-400/40 hover:from-[#1d4ed8] hover:to-[#1742b6] hover:shadow-[0_6px_20px_rgba(37,99,235,0.45)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150"
+                  className="group inline-flex min-h-12 items-center justify-center gap-2.5 rounded-xl bg-gradient-to-b from-[#7161f5] to-[#5747d7] px-6 text-sm font-semibold tracking-wide text-white shadow-[0_4px_14px_rgba(37,99,235,0.35)] border-t border-blue-400/40 hover:from-[#6252e6] hover:to-[#4939c3] hover:shadow-[0_6px_20px_rgba(37,99,235,0.45)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150"
                 >
                   <span>{sessionUser ? "Open Tender Workspace" : "Start Free Evaluation"}</span>
                   <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -358,31 +484,31 @@ export default function LandingPage() {
             </div>
 
             {/* Right side: Authentic photo-frame application window mockup */}
-            <div className="lg:col-span-6 xl:col-span-6">
+            <div className="min-w-0 lg:col-span-6 xl:col-span-6">
               <div className="relative mx-auto max-w-lg lg:max-w-none">
                 {/* Subtle gold badge seal hovering top right */}
-                <div className="absolute -top-3 -right-3 z-20 flex items-center gap-1.5 rounded-full border border-amber-300 bg-gradient-to-r from-amber-50 to-amber-100 px-3 py-1 shadow-md">
+                <div className="absolute top-2 right-2 z-20 flex max-w-[calc(100%-1rem)] items-center gap-1.5 rounded-full border border-amber-300 bg-gradient-to-r from-amber-50 to-amber-100 px-3 py-1 shadow-md sm:-top-3 sm:-right-3 sm:max-w-none">
                   <span className="text-xs font-black text-amber-800">★ VERIFIED AUDIT MATRIX</span>
                 </div>
 
                 {/* Photo-frame browser window container */}
                 <div className="overflow-hidden rounded-2xl border-2 border-slate-300/90 bg-white shadow-[0_20px_50px_-10px_rgba(15,42,71,0.22)] ring-1 ring-slate-900/5">
                   {/* Window title bar chrome */}
-                  <div className="flex items-center justify-between border-b border-slate-200 bg-[#0f2a47] px-4 py-3 text-white">
+                  <div className="flex min-w-0 items-center justify-between gap-2 border-b border-slate-200 bg-[#0f2a47] px-3 py-3 text-white sm:px-4">
                     <div className="flex items-center gap-2">
                       <span className="h-3 w-3 rounded-full bg-red-400 inline-block" />
                       <span className="h-3 w-3 rounded-full bg-amber-400 inline-block" />
                       <span className="h-3 w-3 rounded-full bg-emerald-400 inline-block" />
                     </div>
 
-                    <div className="flex items-center gap-1.5 rounded-md bg-white/10 px-3 py-1 text-xs text-slate-200 font-mono">
+                    <div className="mx-1 flex min-w-0 flex-1 items-center gap-1.5 rounded-md bg-white/10 px-2 py-1 text-xs font-mono text-slate-200 sm:mx-2 sm:flex-none sm:px-3">
                       <svg className="h-3.5 w-3.5 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
-                      <span>workspace / tender-analysis / #WASA-2026</span>
+                      <span className="block truncate">workspace / tender-analysis / #WASA-2026</span>
                     </div>
 
-                    <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300">
+                    <span className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold text-emerald-300">
                       <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                       Live Ready
                     </span>
@@ -391,8 +517,8 @@ export default function LandingPage() {
                   {/* Inner Workspace Document Header */}
                   <div className="border-b border-slate-100 bg-[#f7faff] p-4 sm:p-5">
                     <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="rounded bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-800">
                             ICB-2026-ENG-402
                           </span>
@@ -400,7 +526,7 @@ export default function LandingPage() {
                             ANALYZED
                           </span>
                         </div>
-                        <h2 className="mt-1.5 text-sm sm:text-base font-bold text-[#0f2a47]">
+                        <h2 className="mt-1.5 break-words text-sm font-bold text-[#0f2a47] sm:text-base">
                           Supervisory Control & Data Acquisition (SCADA) Upgrade
                         </h2>
                         <p className="text-xs text-slate-500">
@@ -415,15 +541,14 @@ export default function LandingPage() {
                     </div>
 
                     {/* Interactive Tab Switcher in the Mockup Frame */}
-                    <div className="mt-4 flex gap-1 border-b border-slate-200">
+                    <div className="mt-4 flex flex-wrap gap-1 border-b border-slate-200">
                       <button
                         type="button"
                         onClick={() => setActiveMockupTab("requirements")}
-                        className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition ${
-                          activeMockupTab === "requirements"
-                            ? "border-blue-600 text-blue-700 bg-white"
-                            : "border-transparent text-slate-500 hover:text-slate-800"
-                        }`}
+                        className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition ${activeMockupTab === "requirements"
+                          ? "border-blue-600 text-blue-700 bg-white"
+                          : "border-transparent text-slate-500 hover:text-slate-800"
+                          }`}
                       >
                         <span>Requirements</span>
                         <span className="rounded-full bg-blue-100 px-1.5 text-[10px] text-blue-700">28</span>
@@ -432,11 +557,10 @@ export default function LandingPage() {
                       <button
                         type="button"
                         onClick={() => setActiveMockupTab("checklist")}
-                        className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition ${
-                          activeMockupTab === "checklist"
-                            ? "border-blue-600 text-blue-700 bg-white"
-                            : "border-transparent text-slate-500 hover:text-slate-800"
-                        }`}
+                        className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition ${activeMockupTab === "checklist"
+                          ? "border-blue-600 text-blue-700 bg-white"
+                          : "border-transparent text-slate-500 hover:text-slate-800"
+                          }`}
                       >
                         <span>Checklist</span>
                         <span className="rounded-full bg-emerald-100 px-1.5 text-[10px] text-emerald-700">100%</span>
@@ -445,11 +569,10 @@ export default function LandingPage() {
                       <button
                         type="button"
                         onClick={() => setActiveMockupTab("draft")}
-                        className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition ${
-                          activeMockupTab === "draft"
-                            ? "border-blue-600 text-blue-700 bg-white"
-                            : "border-transparent text-slate-500 hover:text-slate-800"
-                        }`}
+                        className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition ${activeMockupTab === "draft"
+                          ? "border-blue-600 text-blue-700 bg-white"
+                          : "border-transparent text-slate-500 hover:text-slate-800"
+                          }`}
                       >
                         <span>Draft</span>
                         <span className="rounded-full bg-amber-100 px-1.5 text-[10px] text-amber-800">5 Sec</span>
@@ -458,11 +581,10 @@ export default function LandingPage() {
                       <button
                         type="button"
                         onClick={() => setActiveMockupTab("export")}
-                        className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition ${
-                          activeMockupTab === "export"
-                            ? "border-blue-600 text-blue-700 bg-white"
-                            : "border-transparent text-slate-500 hover:text-slate-800"
-                        }`}
+                        className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition ${activeMockupTab === "export"
+                          ? "border-blue-600 text-blue-700 bg-white"
+                          : "border-transparent text-slate-500 hover:text-slate-800"
+                          }`}
                       >
                         <span>Export</span>
                         <span className="rounded-full bg-indigo-100 px-1.5 text-[10px] text-indigo-700">DOCX</span>
@@ -474,7 +596,7 @@ export default function LandingPage() {
                   <div className="p-4 sm:p-5 bg-white min-h-[260px]">
                     {activeMockupTab === "requirements" && (
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between text-xs text-slate-500 border-b border-slate-100 pb-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2 text-xs text-slate-500">
                           <span className="font-semibold text-slate-700">Requirement Clause #04</span>
                           <span className="rounded bg-emerald-50 px-2 py-0.5 font-bold text-emerald-700 border border-emerald-200">
                             Verified Citation ✓
@@ -486,7 +608,7 @@ export default function LandingPage() {
                         </p>
 
                         <div className="rounded-lg border border-amber-300/80 bg-amber-50/70 p-3">
-                          <div className="flex items-center justify-between text-[11px] font-bold text-amber-900 mb-1">
+                          <div className="mb-1 flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-amber-900">
                             <span className="flex items-center gap-1">
                               <span className="text-amber-600 font-black">★</span> Source Quote (Page 18, Para 4)
                             </span>
@@ -497,37 +619,37 @@ export default function LandingPage() {
                           </p>
                         </div>
 
-                        <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500">
-                          <span className="font-medium">Category: Technical · Obligation: Mandatory</span>
-                          <span className="text-blue-600 font-semibold cursor-pointer">Jump to Page 18 →</span>
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-slate-500">
+                          <span className="break-words font-medium">Category: Technical · Obligation: Mandatory</span>
+                          <span className="shrink-0 cursor-pointer font-semibold text-blue-600">Jump to Page 18 →</span>
                         </div>
                       </div>
                     )}
 
                     {activeMockupTab === "checklist" && (
                       <div className="space-y-2.5">
-                        <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 mb-1">
                           <span className="font-semibold text-slate-700">Compliance Audit Summary</span>
                           <span className="font-bold text-emerald-600">26/28 Compliant</span>
                         </div>
 
-                        <div className="rounded-lg border border-slate-200 p-2.5 flex items-center justify-between text-xs">
-                          <span className="font-medium text-[#0f2a47]">ISO 9001:2015 Quality Certification</span>
-                          <span className="rounded bg-emerald-100 px-2 py-0.5 font-bold text-emerald-800">
+                        <div className="rounded-lg border border-slate-200 p-2.5 flex items-center justify-between gap-2 text-xs">
+                          <span className="min-w-0 break-words font-medium text-[#0f2a47]">ISO 9001:2015 Quality Certification</span>
+                          <span className="shrink-0 rounded bg-emerald-100 px-2 py-0.5 font-bold text-emerald-800">
                             COMPLIANT
                           </span>
                         </div>
 
-                        <div className="rounded-lg border border-slate-200 p-2.5 flex items-center justify-between text-xs">
-                          <span className="font-medium text-[#0f2a47]">Key Personnel: Project Manager 15+ Yrs</span>
-                          <span className="rounded bg-emerald-100 px-2 py-0.5 font-bold text-emerald-800">
+                        <div className="rounded-lg border border-slate-200 p-2.5 flex items-center justify-between gap-2 text-xs">
+                          <span className="min-w-0 break-words font-medium text-[#0f2a47]">Key Personnel: Project Manager 15+ Yrs</span>
+                          <span className="shrink-0 rounded bg-emerald-100 px-2 py-0.5 font-bold text-emerald-800">
                             COMPLIANT
                           </span>
                         </div>
 
-                        <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-2.5 flex items-center justify-between text-xs">
-                          <span className="font-medium text-[#0f2a47]">Joint Venture Agreement Notarization</span>
-                          <span className="rounded bg-amber-100 px-2 py-0.5 font-bold text-amber-800">
+                        <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-2.5 flex items-center justify-between gap-2 text-xs">
+                          <span className="min-w-0 break-words font-medium text-[#0f2a47]">Joint Venture Agreement Notarization</span>
+                          <span className="shrink-0 rounded bg-amber-100 px-2 py-0.5 font-bold text-amber-800">
                             PARTIAL REVIEW
                           </span>
                         </div>
@@ -536,7 +658,7 @@ export default function LandingPage() {
 
                     {activeMockupTab === "draft" && (
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between text-xs text-slate-500 border-b border-slate-100 pb-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2 text-xs text-slate-500">
                           <span className="font-semibold text-slate-700">Section 2: Technical Methodology</span>
                           <span className="text-xs font-semibold text-blue-600">AI Generated</span>
                         </div>
@@ -568,8 +690,33 @@ export default function LandingPage() {
                   </div>
 
                   {/* Frame caption footer */}
-                  <div className="border-t border-slate-100 bg-slate-50 px-4 py-2.5 text-center text-xs text-slate-500 font-medium">
+                  <div className="border-t border-slate-100 bg-slate-50 px-4 py-2.5 text-center text-xs font-medium text-slate-500">
                     Click tabs above to preview actual TenderPilot AI workspace capabilities.
+                  </div>
+                </div>
+
+                {/* Floating AI verification card */}
+                <div className="pointer-events-none absolute -bottom-3 right-4 z-30 hidden sm:block">
+                  <div className="flex w-56 items-center gap-3 rounded-2xl border border-cyan-100 bg-white/95 p-3.5 shadow-[0_18px_40px_rgb(35_28_84/16%)] backdrop-blur">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.8}
+                          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                        />
+                      </svg>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-bold text-[#121936]">
+                        AI verification complete
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-slate-500">
+                        Every clause includes a source citation
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -578,12 +725,122 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Dark Navy Enterprise Feature Banner */}
-      <section className="bg-[#0f2a47] py-12 text-white border-b border-blue-950">
+      {/* Product screens showcase */}
+      <section
+        id="product-preview"
+        className="tp-cyan-band relative overflow-hidden border-b border-slate-200/80 py-20 sm:py-28"
+      >
+        <div className="tp-orb-violet pointer-events-none -right-20 top-24" />
+        <div className="tp-orb-cyan pointer-events-none -left-20 bottom-20" />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 sm:gap-8 text-center">
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="inline-flex rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-violet-700">
+              Built for serious bid teams
+            </span>
+
+            <h2 className="mt-4 text-3xl font-black tracking-tight text-[#121936] sm:text-4xl">
+              One workspace for every stage of your tender
+            </h2>
+
+            <p className="mt-4 text-sm leading-7 text-slate-600 sm:text-base">
+              Review requirements on desktop, check compliance on mobile, and keep your
+              proposal work moving wherever you are.
+            </p>
+          </div>
+
+          {/* Laptop mockup */}
+          <div className="relative mx-auto mt-14 max-w-5xl">
+            <div className="absolute -left-10 top-20 h-40 w-40 rounded-full bg-violet-200/40 blur-3xl" />
+            <div className="absolute -right-10 bottom-10 h-48 w-48 rounded-full bg-cyan-200/40 blur-3xl" />
+
+            <div className="relative rounded-[1.75rem] border-8 border-[#121936] bg-[#121936] p-2 shadow-[0_30px_80px_rgb(35_28_84/20%)]">
+              <div className="flex items-center gap-2 rounded-t-xl bg-[#202949] px-4 py-3">
+                <span className="h-3 w-3 rounded-full bg-red-400" />
+                <span className="h-3 w-3 rounded-full bg-yellow-400" />
+                <span className="h-3 w-3 rounded-full bg-green-400" />
+
+                <div className="mx-auto rounded-lg bg-white/10 px-5 py-1 text-[10px] text-slate-300 sm:text-xs">
+                  app.tenderpilot.ai/dashboard
+                </div>
+              </div>
+
+              <div className="relative aspect-[16/9] overflow-hidden rounded-b-xl bg-white">
+                <Image
+                  src="/images/showcase-dashboard-desktop.png"
+                  alt="TenderPilot desktop dashboard"
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 960px"
+                  className="object-cover object-top"
+                />
+              </div>
+            </div>
+
+            {/* Laptop base */}
+            <div className="mx-auto h-3 w-[82%] rounded-b-full bg-[#121936] shadow-lg sm:h-4" />
+            <div className="mx-auto h-2 w-[45%] rounded-b-xl bg-slate-300" />
+          </div>
+
+          {/* Mobile phone mockups */}
+          <div className="mt-16 flex flex-col items-center justify-center gap-10 sm:flex-row sm:items-end">
+            <div className="max-w-xs text-center sm:mr-8 sm:text-left">
+              <span className="text-xs font-bold uppercase tracking-wider text-violet-600">
+                Mobile-ready workspace
+              </span>
+
+              <h3 className="mt-3 text-2xl font-black tracking-tight text-[#121936]">
+                Stay on top of every requirement
+              </h3>
+
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                The important parts of your tender workspace remain readable and
+                usable on smaller screens.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-end justify-center gap-4">
+              {/* Phone 1 */}
+              <div className="w-[40vw] max-w-[165px] rounded-[2.2rem] border-[7px] border-[#121936] bg-[#121936] p-1 shadow-[0_22px_50px_rgb(35_28_84/18%)] sm:w-[190px]">
+                <div className="relative aspect-[9/19] overflow-hidden rounded-[1.7rem] bg-white">
+                  <div className="absolute left-1/2 top-2 z-10 h-5 w-16 -translate-x-1/2 rounded-full bg-[#121936]" />
+
+                  <Image
+                    src="/images/showcase-dashboard-mobile.png"
+                    alt="TenderPilot mobile dashboard"
+                    fill
+                    sizes="190px"
+                    className="object-cover object-top"
+                  />
+                </div>
+              </div>
+
+              {/* Phone 2 */}
+              <div className="mb-8 w-[40vw] max-w-[165px] rounded-[2.2rem] border-[7px] border-[#121936] bg-[#121936] p-1 shadow-[0_22px_50px_rgb(35_28_84/18%)] sm:w-[190px]">
+                <div className="relative aspect-[9/19] overflow-hidden rounded-[1.7rem] bg-white">
+                  <div className="absolute left-1/2 top-2 z-10 h-5 w-16 -translate-x-1/2 rounded-full bg-[#121936]" />
+
+                  <Image
+                    src="/images/showcase-requirements-mobile.png"
+                    alt="TenderPilot mobile requirements view"
+                    fill
+                    sizes="190px"
+                    className="object-cover object-top"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <SectionWave fill="#f7f3ff" />
+      </section>
+      {/* Dark Navy Enterprise Feature Banner */}
+      <section className="relative overflow-hidden border-b border-violet-950/40 bg-[linear-gradient(135deg,#121936_0%,#332873_56%,#0e6079_100%)] py-14 text-white">
+  <div className="pointer-events-none absolute -left-24 top-0 h-56 w-56 rounded-full bg-violet-400/20 blur-3xl" />
+  <div className="pointer-events-none absolute -right-24 bottom-0 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 gap-3 text-center sm:grid-cols-4 sm:gap-6">
             <div className="flex flex-col items-center p-3">
-              <span className="text-3xl sm:text-4xl font-extrabold text-blue-400">100%</span>
+              <span className="text-3xl sm:text-4xl font-extrabold text-cyan-300">100%</span>
               <span className="mt-1 text-xs sm:text-sm font-medium text-slate-300">Verbatim</span>
               <span className="mt-0.5 text-[11px] text-amber-300 font-semibold">★ Source-Grounded Citations</span>
             </div>
@@ -607,7 +864,11 @@ export default function LandingPage() {
       </section>
 
       {/* 5-Step Workflow Walkthrough Section */}
-      <section id="workflow" className="py-20 sm:py-28 bg-[#f7faff] border-b border-slate-200/80">
+      <section
+        id="workflow"
+        className="tp-lilac-band tp-dot-grid relative overflow-hidden border-b border-slate-200/80 py-20 sm:py-28"
+      >
+        <div className="tp-blob-cyan pointer-events-none absolute -right-12 top-20 hidden lg:block" />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 uppercase">
@@ -621,39 +882,58 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
             {workflowSteps.map((item) => (
               <div
                 key={item.step}
-                className="relative flex flex-col justify-between rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs hover:-translate-y-1 hover:border-blue-300 hover:shadow-md transition-all duration-200"
+                className="group relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 shadow-[0_14px_35px_rgb(35_28_84/6%)] transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:shadow-[0_20px_45px_rgb(35_28_84/12%)]"
               >
-                <div>
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <span className="text-2xl font-black text-amber-700/80 font-mono">{item.step}</span>
-                    <span className="rounded-full bg-blue-50 border border-blue-200/60 px-2 py-0.5 text-[11px] font-bold text-blue-800">
-                      {item.badge}
-                    </span>
-                  </div>
-                  <h3 className="mt-4 text-base font-bold text-[#0f2a47]">{item.title}</h3>
-                  <p className="mt-2 text-xs leading-relaxed text-slate-600">{item.description}</p>
+                <div className={`h-1.5 w-14 rounded-full bg-gradient-to-r ${item.accent}`} />
+
+                <div className="mt-5 flex items-center justify-between gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#121936] font-mono text-sm font-black text-white shadow-sm">
+                    {item.step}
+                  </span>
+
+                  <span className="rounded-full border border-violet-100 bg-violet-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-violet-700">
+                    {item.badge}
+                  </span>
                 </div>
+
+                <h3 className="mt-5 text-lg font-black tracking-tight text-[#121936]">
+                  {item.title}
+                </h3>
+
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  {item.description}
+                </p>
+
+                <div className="mt-6 flex items-center gap-2 text-xs font-bold text-violet-600">
+                  <span>Explore this stage</span>
+                  <span className="transition-transform duration-200 group-hover:translate-x-1">
+                    →
+                  </span>
+                </div>
+
+                <div className="pointer-events-none absolute -bottom-12 -right-12 h-28 w-28 rounded-full bg-violet-100/40 blur-2xl transition group-hover:bg-cyan-100/60" />
               </div>
             ))}
           </div>
         </div>
+        <SectionWave fill="#effaff" />
       </section>
 
       {/* Enterprise Capabilities & Deep Navy Contrast Grid */}
-      <section id="features" className="py-20 sm:py-28 bg-[#0f2a47] text-white">
+      <section id="features" className="tp-cyan-band overflow-hidden border-b border-slate-200/80 py-20 sm:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3.5 py-1 text-xs font-bold text-amber-300 uppercase">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-3.5 py-1 text-xs font-bold uppercase text-violet-700">
               ★ Enterprise-Grade Reliability
             </div>
-            <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-[#121936] sm:text-4xl">
               Engineered for Absolute Bid Compliance
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-sm sm:text-base text-slate-300">
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
               Contract review software designed for mission-critical procurement proposals where accuracy cannot be compromised.
             </p>
           </div>
@@ -662,24 +942,37 @@ export default function LandingPage() {
             {features.map((feat) => (
               <div
                 key={feat.title}
-                className="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-xs transition hover:border-blue-400/50 hover:bg-white/10 hover:shadow-lg"
+                className="group rounded-3xl border border-slate-200/90 bg-white p-6 shadow-[0_14px_35px_rgb(35_28_84/6%)] transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:shadow-[0_20px_45px_rgb(35_28_84/12%)]"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400 border border-blue-400/30">
+                <div className="flex items-start justify-between gap-4">
+                  <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${feat.isGold
+                      ? "border-amber-200 bg-amber-50 text-amber-700"
+                      : "border-violet-200 bg-violet-50 text-violet-700"
+                      }`}
+                  >
                     {feat.icon}
                   </div>
+
                   <span
-                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                      feat.isGold
-                        ? "bg-amber-400/20 text-amber-300 border border-amber-400/40"
-                        : "bg-blue-400/10 text-blue-300 border border-blue-400/20"
-                    }`}
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${feat.isGold
+                      ? "border border-amber-200 bg-amber-50 text-amber-800"
+                      : "border border-cyan-200 bg-cyan-50 text-cyan-700"
+                      }`}
                   >
                     {feat.tag}
                   </span>
                 </div>
-                <h3 className="mt-4 text-base font-bold text-white">{feat.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-300">{feat.description}</p>
+
+                <h3 className="mt-6 text-lg font-black tracking-tight text-[#121936]">
+                  {feat.title}
+                </h3>
+
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  {feat.description}
+                </p>
+
+                <div className="mt-6 h-1 w-10 rounded-full bg-gradient-to-r from-violet-500 to-cyan-400 transition-all duration-300 group-hover:w-16" />
               </div>
             ))}
           </div>
@@ -687,10 +980,10 @@ export default function LandingPage() {
       </section>
 
       {/* User Guidelines Section */}
-      <section id="guidelines" className="py-20 sm:py-28 bg-[#f7faff] border-b border-slate-200">
+      <section id="guidelines" className="tp-cream-band overflow-hidden border-b border-slate-200/80 py-20 sm:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <span className="text-xs font-bold tracking-widest text-blue-700 uppercase">
+            <span className="text-xs font-bold uppercase tracking-widest text-violet-700">
               Best Practices
             </span>
             <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-[#0f2a47] sm:text-4xl">
@@ -702,56 +995,59 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-12 grid gap-6 md:grid-cols-3">
-            <div className="rounded-xl border border-slate-200/90 bg-white p-6 shadow-xs">
+            <div className="group rounded-3xl border border-slate-200/90 bg-[#fbfcff] p-6 shadow-[0_14px_35px_rgb(35_28_84/5%)] transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:bg-white hover:shadow-[0_20px_45px_rgb(35_28_84/10%)]">
               <div className="flex items-center justify-between">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 font-bold text-blue-700">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 font-black text-violet-700 ring-4 ring-violet-50">
                   1
                 </span>
                 <span className="rounded bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800 border border-amber-200">
                   Essential
                 </span>
               </div>
-              <h3 className="mt-4 text-base font-bold text-[#0f2a47]">Selectable Vector Text</h3>
+              <h3 className="mt-5 text-lg font-black tracking-tight text-[#121936]">Selectable Vector Text</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
                 Ensure the PDF tender contains searchable vector text. If uploading a scanned paper tender, run optical character recognition (OCR) first. Maximum size is 20 MB and 150 pages.
               </p>
+              <div className="mt-5 h-1 w-10 rounded-full bg-gradient-to-r from-violet-500 to-cyan-400 transition-all duration-300 group-hover:w-16" />
             </div>
 
-            <div className="rounded-xl border border-slate-200/90 bg-white p-6 shadow-xs">
+            <div className="group rounded-3xl border border-slate-200/90 bg-[#fbfcff] p-6 shadow-[0_14px_35px_rgb(35_28_84/5%)] transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:bg-white hover:shadow-[0_20px_45px_rgb(35_28_84/10%)]">
               <div className="flex items-center justify-between">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 font-bold text-blue-700">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 font-black text-violet-700 ring-4 ring-violet-50">
                   2
                 </span>
                 <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">
                   Audit Step
                 </span>
               </div>
-              <h3 className="mt-4 text-base font-bold text-[#0f2a47]">Review & Confirm Clauses</h3>
+              <h3 className="mt-5 text-lg font-black tracking-tight text-[#121936]">Review & Confirm Clauses</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
                 Always review AI classifications in the Requirements tab. Confirm verified items, adjust categories if necessary, and use the built-in Page Text Viewer to cross-examine original clauses.
               </p>
+              <div className="mt-5 h-1 w-10 rounded-full bg-gradient-to-r from-violet-500 to-cyan-400 transition-all duration-300 group-hover:w-16" />
             </div>
 
-            <div className="rounded-xl border border-slate-200/90 bg-white p-6 shadow-xs">
+            <div className="group rounded-3xl border border-slate-200/90 bg-[#fbfcff] p-6 shadow-[0_14px_35px_rgb(35_28_84/5%)] transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:bg-white hover:shadow-[0_20px_45px_rgb(35_28_84/10%)]">
               <div className="flex items-center justify-between">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 font-bold text-blue-700">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 font-black text-violet-700 ring-4 ring-violet-50">
                   3
                 </span>
                 <span className="rounded bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800 border border-emerald-200">
                   Export Prep
                 </span>
               </div>
-              <h3 className="mt-4 text-base font-bold text-[#0f2a47]">Complete Company Placeholders</h3>
+              <h3 className="mt-5 text-lg font-black tracking-tight text-[#121936]">Complete Company Placeholders</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
                 Before downloading the final Word DOCX, check the Draft tab for company placeholders highlighted in amber. Replace all bracketed items with your company&apos;s specific corporate details.
               </p>
+              <div className="mt-5 h-1 w-10 rounded-full bg-gradient-to-r from-violet-500 to-cyan-400 transition-all duration-300 group-hover:w-16" />
             </div>
           </div>
         </div>
       </section>
 
       {/* FAQ Accordion Section */}
-      <section id="faq" className="py-20 sm:py-28 bg-white border-b border-slate-200">
+      <section id="faq" className="tp-lilac-band overflow-hidden border-b border-slate-200/80 py-20 sm:py-28">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <span className="text-xs font-bold tracking-widest text-blue-700 uppercase">
@@ -771,20 +1067,20 @@ export default function LandingPage() {
               return (
                 <div
                   key={faq.question}
-                  className="rounded-xl border border-slate-200 bg-[#f7faff] transition shadow-xs"
+                  className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_10px_28px_rgb(35_28_84/5%)] transition-all hover:border-violet-200"
                 >
                   <button
                     type="button"
                     onClick={() => toggleFaq(index)}
-                    className="flex w-full items-center justify-between p-5 text-left text-base font-semibold text-[#0f2a47] focus:outline-none"
+                    className="flex w-full items-center justify-between gap-4 p-5 text-left text-sm font-bold text-[#121936] focus:outline-none sm:p-6 sm:text-base"
                   >
-                    <span>{faq.question}</span>
-                    <span className="ml-4 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white border border-slate-200 text-slate-600 font-bold">
+                    <span className="min-w-0 break-words">{faq.question}</span>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-violet-200 bg-violet-50 text-lg font-bold text-violet-700">
                       {isOpen ? "−" : "+"}
                     </span>
                   </button>
                   {isOpen && (
-                    <div className="border-t border-slate-200/80 px-5 pt-3 pb-5 text-sm leading-relaxed text-slate-600 bg-white rounded-b-xl">
+                    <div className="border-t border-violet-100 bg-violet-50/40 px-5 pt-4 pb-5 text-sm leading-7 text-slate-600 sm:px-6">
                       {faq.answer}
                     </div>
                   )}
@@ -796,14 +1092,14 @@ export default function LandingPage() {
       </section>
 
       {/* Executive Call to Action Banner */}
-      <section className="py-16 sm:py-24 bg-gradient-to-b from-white to-[#f7faff]">
+      <section className="bg-[#f7f8ff] py-20 sm:py-28">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="relative overflow-hidden rounded-2xl border border-blue-900/30 bg-[#0f2a47] p-8 sm:p-12 text-center text-white shadow-xl">
+          <div className="relative overflow-hidden rounded-[2rem] border border-violet-500/20 bg-[linear-gradient(135deg,#121936_0%,#2e275f_55%,#0f5b78_100%)] p-8 text-center text-white shadow-[0_24px_70px_rgb(35_28_84/22%)] sm:p-12">
             <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-blue-500/20 blur-3xl" />
             <div className="pointer-events-none absolute -left-16 -bottom-16 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
 
             <div className="relative z-10">
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-300 uppercase">
+              <span className="inline-flex items-center gap-1 rounded-full border border-yellow-300/40 bg-yellow-300/10 px-3 py-1 text-xs font-bold uppercase text-yellow-200">
                 ★ Accelerate Bid Cycles
               </span>
               <h2 className="mt-4 text-2xl font-bold tracking-tight text-white sm:text-4xl">
@@ -816,7 +1112,7 @@ export default function LandingPage() {
               <div className="mt-8 flex flex-wrap justify-center gap-4">
                 <Link
                   href={sessionUser ? "/dashboard" : "/register"}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-gradient-to-b from-[#2563eb] to-[#1d4ed8] px-6 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 border-t border-blue-400/40 hover:from-[#1d4ed8] hover:to-[#1742b6] transition-all"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-gradient-to-b from-[#8173ff] to-[#5948db] px-6 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 border-t border-blue-400/40 hover:from-[#6252e6] hover:to-[#4939c3] transition-all"
                 >
                   <span>{sessionUser ? "Open Tender Workspace" : "Create Account"}</span>
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

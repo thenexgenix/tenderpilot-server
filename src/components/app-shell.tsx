@@ -119,7 +119,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
     : "Dashboard";
 
   return (
-    <div className="flex min-h-screen bg-[#f7faff]">
+    <div className="tp-shell-bg flex min-h-screen">
       {/* Desktop Persistent Sidebar */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-hidden border-r border-[#0f2a47]/30 bg-[#0f2a47] bg-[url('/images/sidebar-bg.png')] bg-[length:100%_100%] bg-top bg-no-repeat text-white shadow-xl lg:flex">
         <div className="flex h-20 items-center gap-3 border-b border-white/10 px-6">
@@ -156,7 +156,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
                 href={item.href}
                 className={`flex min-h-11 items-center gap-3.5 rounded-xl px-3.5 text-sm font-medium transition-all ${
                   active
-                    ? "bg-[#2563eb] text-white shadow-md shadow-blue-900/40"
+                    ? "bg-[#6857ee] text-white shadow-md shadow-violet-900/30"
                     : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
               >
@@ -257,7 +257,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
       {/* Main Content Area */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Modern Application Header */}
-        <header className="sticky top-0 z-30 flex min-h-18 flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 bg-white/95 px-5 py-3 backdrop-blur-md lg:px-8">
+        <header className="sticky top-0 z-30 flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur-xl sm:px-6 lg:min-h-18 lg:px-8">
           <div className="flex items-center gap-3">
             {/* Hamburger button visible only on mobile/tablet */}
             <button
@@ -290,7 +290,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
           </div>
 
           {/* Quick Search Input */}
-          <div className="relative min-w-[220px] flex-1 max-w-md">
+          <div className="relative order-3 w-full flex-none md:order-none md:min-w-[220px] md:max-w-md md:flex-1">
             <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -341,7 +341,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
         </header>
 
         {/* Workspace Canvas Container */}
-        <main className="mx-auto w-full max-w-[1500px] flex-1 p-5 sm:p-6 lg:p-8">
+        <main className="mx-auto w-full max-w-[1500px] min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>

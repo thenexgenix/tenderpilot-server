@@ -23,6 +23,7 @@ import {
 
 import {
     DailyAnalysisLimitError,
+    releaseDailyAnalysisSlot,
     reserveDailyAnalysisSlot,
 } from "@/lib/ai/analysis-limit";
 
@@ -59,6 +60,9 @@ export async function processTenderPdf(
             "No PDF is attached to this tender.",
         );
     }
+
+    let analysisSlotReserved = false;
+    let reservedUsageDate: string | null = null;
 
     await prisma.tender.update({
         where: {
@@ -155,7 +159,10 @@ export async function processTenderPdf(
         const provider = createAiProvider();
 
         try {
-            await reserveDailyAnalysisSlot(ownerId);
+            const reservation = await reserveDailyAnalysisSlot(ownerId);
+
+            analysisSlotReserved = true;
+            reservedUsageDate = reservation.usageDate;
         } catch (error) {
             if (error instanceof DailyAnalysisLimitError) {
                 await prisma.tender.update({
@@ -185,6 +192,7 @@ export async function processTenderPdf(
             readablePages,
             provider,
         );
+        analysisSlotReserved = false;
 
         const savedRequirements =
             await saveAiRequirements(
@@ -232,6 +240,19 @@ export async function processTenderPdf(
             status: finalStatus,
         };
     } catch (error) {
+        if (analysisSlotReserved && reservedUsageDate) {
+            try {
+                await releaseDailyAnalysisSlot(
+                    ownerId,
+                    reservedUsageDate,
+                );
+            } catch (releaseError) {
+                console.error(
+                    "Unable to release failed analysis slot.",
+                    releaseError,
+                );
+            }
+        }
         const errorCode =
             error instanceof PdfExtractionError
                 ? error.code

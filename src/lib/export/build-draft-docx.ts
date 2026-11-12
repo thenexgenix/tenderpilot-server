@@ -30,6 +30,28 @@ export type DraftExportInput = {
         position: number;
         content: string;
     }>;
+    strategy?: {
+        referenceCount: number;
+        analyzedReferenceCount: number;
+        benchmarkThemes: Array<{
+            category: string;
+            referenceTenderCount: number;
+            currentRequirementCount: number;
+        }>;
+        winThemes: string[];
+        evidenceGaps: Array<{
+            displayId: string;
+            category: string;
+            request: string;
+            pageNumber: number | null;
+        }>;
+        references: Array<{
+            title: string;
+            issuerName: string;
+            sourceType: "PUBLIC_REFERENCE" | "SYNTHETIC_REFERENCE";
+        }>;
+        disclaimer: string;
+    };
 };
 
 function contentParagraphs(content: string) {
@@ -88,6 +110,29 @@ function metadataParagraph(
                 color: COLORS.body,
             }),
         ],
+    });
+}
+
+function bulletParagraph(text: string) {
+    return new Paragraph({
+        text,
+        bullet: { level: 0 },
+        spacing: {
+            line: 260,
+            after: 140,
+        },
+    });
+}
+
+function strategyHeading(text: string) {
+    return new Paragraph({
+        text,
+        heading: HeadingLevel.HEADING_2,
+        spacing: {
+            before: 260,
+            after: 140,
+        },
+        keepNext: true,
     });
 }
 
@@ -159,6 +204,108 @@ export async function buildDraftDocx(
             ],
         }),
     ];
+
+    if (input.strategy) {
+        children.push(
+            new Paragraph({
+                text: "Bid Intelligence & Win Strategy",
+                heading: HeadingLevel.HEADING_1,
+                pageBreakBefore: true,
+                keepNext: true,
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: `Benchmark review based on ${input.strategy.analyzedReferenceCount} analyzed reference tender(s) out of ${input.strategy.referenceCount} uploaded benchmark source(s).`,
+                        italics: true,
+                        color: COLORS.muted,
+                    }),
+                ],
+                spacing: { after: 240 },
+            }),
+            strategyHeading("Recommended win themes"),
+        );
+
+        input.strategy.winThemes.forEach((theme) => {
+            children.push(bulletParagraph(theme));
+        });
+
+        children.push(strategyHeading("Recurring benchmark themes"));
+
+        if (input.strategy.benchmarkThemes.length === 0) {
+            children.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: "No recurring categories were detected in the analyzed reference tenders.",
+                            italics: true,
+                            color: COLORS.muted,
+                        }),
+                    ],
+                }),
+            );
+        } else {
+            input.strategy.benchmarkThemes.forEach((theme) => {
+                children.push(
+                    bulletParagraph(
+                        `${theme.category}: appears in ${theme.referenceTenderCount} reference tender(s) and ${theme.currentRequirementCount} current requirement(s).`,
+                    ),
+                );
+            });
+        }
+
+        children.push(strategyHeading("Evidence gaps before submission"));
+
+        if (input.strategy.evidenceGaps.length === 0) {
+            children.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: "No evidence-sensitive requirements were detected.",
+                            italics: true,
+                            color: COLORS.muted,
+                        }),
+                    ],
+                }),
+            );
+        } else {
+            input.strategy.evidenceGaps.forEach((gap) => {
+                children.push(
+                    bulletParagraph(
+                        `${gap.displayId} (${gap.category}): ${gap.request}${gap.pageNumber ? ` Source page ${gap.pageNumber}.` : ""}`,
+                    ),
+                );
+            });
+        }
+
+        children.push(strategyHeading("Benchmark source register"));
+
+        input.strategy.references.forEach((reference) => {
+            const sourceLabel =
+                reference.sourceType === "SYNTHETIC_REFERENCE"
+                    ? "Synthetic benchmark"
+                    : "Public reference";
+
+            children.push(
+                bulletParagraph(
+                    `${reference.title} — ${reference.issuerName} (${sourceLabel})`,
+                ),
+            );
+        });
+
+        children.push(
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: input.strategy.disclaimer,
+                        italics: true,
+                        color: COLORS.warning,
+                    }),
+                ],
+                spacing: { before: 180, after: 320 },
+            }),
+        );
+    }
 
     const orderedSections = [...input.sections].sort(
         (a, b) => a.position - b.position,

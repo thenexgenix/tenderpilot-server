@@ -21,12 +21,14 @@ import { RequirementsTab } from "@/components/requirements-tab";
 import { ChecklistTab } from "@/components/checklist-tab";
 import { DraftTab } from "@/components/draft-tab";
 import { ExportTab } from "@/components/export-tab";
+import { StrategyTab } from "@/components/strategy-tab";
 
 type Tender = {
   id: string;
   title: string;
   issuerName: string;
   reference: string | null;
+  sourceType: "ACTIVE" | "PUBLIC_REFERENCE" | "SYNTHETIC_REFERENCE";
   deadlineAt: string | null;
   notes: string | null;
   status: TenderStatusKey;
@@ -91,7 +93,13 @@ type ProcessResponse = {
   };
 };
 
-const tabs = ["Requirements", "Checklist", "Draft", "Export"] as const;
+const tabs = [
+  "Requirements",
+  "Checklist",
+  "Strategy",
+  "Draft",
+  "Export",
+] as const;
 type TabName = (typeof tabs)[number];
 
 /* Format utility rendering human-readable dates for deadlines and timestamps */
@@ -104,6 +112,20 @@ function formatDate(value: string | null): string {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function sourceTypeLabel(
+  sourceType: Tender["sourceType"],
+): string {
+  if (sourceType === "PUBLIC_REFERENCE") {
+    return "Public reference tender";
+  }
+
+  if (sourceType === "SYNTHETIC_REFERENCE") {
+    return "Synthetic benchmark";
+  }
+
+  return "Active tender";
 }
 
 /* User-facing description for current document processing stages */
@@ -412,6 +434,7 @@ function TenderDetailsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isStartingProcessing, setIsStartingProcessing] = useState(false);
+  const [isUpdatingSourceType, setIsUpdatingSourceType] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [draftHasUnsavedChanges, setDraftHasUnsavedChanges] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
@@ -424,6 +447,46 @@ function TenderDetailsContent() {
   const [pageError, setPageError] = useState("");
 
   const processingStartedRef = useRef(false);
+
+  async function updateSourceType(sourceType: Tender["sourceType"]) {
+    if (!tender || sourceType === tender.sourceType) {
+      return;
+    }
+
+    setIsUpdatingSourceType(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch(`/api/tenders/${tenderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceType }),
+      });
+      const result = (await response.json()) as TenderResponse;
+
+      if (!response.ok) {
+        throw new Error(
+          result.error?.message ?? "Unable to update document role.",
+        );
+      }
+
+      setTender((currentTender) =>
+        currentTender ? { ...currentTender, sourceType } : currentTender,
+      );
+
+      if (sourceType !== "ACTIVE" && activeTab === "Strategy") {
+        router.replace(`/tenders/${tenderId}?tab=Requirements`);
+      }
+    } catch (updateError) {
+      setErrorMessage(
+        updateError instanceof Error
+          ? updateError.message
+          : "Unable to update document role.",
+      );
+    } finally {
+      setIsUpdatingSourceType(false);
+    }
+  }
 
   const loadTender = useCallback(
     async (showLoader: boolean) => {
@@ -790,6 +853,26 @@ function TenderDetailsContent() {
               <span className="rounded bg-blue-100/80 px-2 py-0.5 font-mono text-xs font-bold text-blue-800">
                 {tender.reference || "No Reference Specified"}
               </span>
+              <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                {sourceTypeLabel(tender.sourceType)}
+              </span>
+              <select
+                aria-label="Document role"
+                value={tender.sourceType}
+                disabled={isUpdatingSourceType}
+                onChange={(event) => {
+                  void updateSourceType(
+                    event.target.value as Tender["sourceType"],
+                  );
+                }}
+                className="min-h-7 rounded-full border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-600 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+              >
+                <option value="ACTIVE">Active tender</option>
+                <option value="PUBLIC_REFERENCE">Public reference</option>
+                <option value="SYNTHETIC_REFERENCE">
+                  Synthetic benchmark
+                </option>
+              </select>
               <StatusBadge status={tender.status} />
             </div>
 
@@ -876,7 +959,12 @@ function TenderDetailsContent() {
 
         {/* Workspace Tab Bar with Vector Icons */}
         <div className="flex gap-2 overflow-x-auto border-b border-slate-200 pb-px">
-          {tabs.map((tab) => {
+          {tabs
+            .filter(
+              (tab) =>
+                tab !== "Strategy" || tender.sourceType === "ACTIVE",
+            )
+            .map((tab) => {
             const isActive = activeTab === tab;
 
             const tabIcons = {
@@ -888,6 +976,11 @@ function TenderDetailsContent() {
               Checklist: (
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              ),
+              Strategy: (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 3v18h18M7 16l3-4 3 2 5-7" />
                 </svg>
               ),
               Draft: (
@@ -1056,6 +1149,10 @@ function TenderDetailsContent() {
         {/* Tab 2: Compliance Checklist */}
         {activeTab === "Checklist" && (
           <ChecklistTab key={tender.status} tenderId={tender.id} />
+        )}
+
+        {activeTab === "Strategy" && tender.sourceType === "ACTIVE" && (
+          <StrategyTab tenderId={tender.id} />
         )}
 
         {/* Tab 3: Proposal Draft Generation */}

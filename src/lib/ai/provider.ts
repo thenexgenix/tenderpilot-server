@@ -72,6 +72,15 @@ function parseAndValidate<T>(
 
     try {
         parsed = JSON.parse(trimmedText);
+
+        // Some providers return JSON encoded as a JSON string.
+        if (typeof parsed === "string") {
+            try {
+                parsed = JSON.parse(parsed);
+            } catch {
+                // Keep the original parsed value for normal validation.
+            }
+        }
     } catch {
         throw new AiProviderError(
             "MALFORMED_RESPONSE",
@@ -79,25 +88,38 @@ function parseAndValidate<T>(
         );
     }
 
-    const validation = request.schema.safeParse(parsed);
+    const candidates = Array.isArray(parsed)
+        ? [
+            parsed,
+            {
+                requirements: parsed,
+            },
+        ]
+        : [parsed];
 
-    if (!validation.success) {
-        const issueSummary = validation.error.issues.map(
-            (issue) => ({
-                path: issue.path.join(".") || "(root)",
-                code: issue.code,
-            }),
-        );
+    for (const candidate of candidates) {
+        const validation = request.schema.safeParse(candidate);
 
-        throw new AiProviderError(
-            "MALFORMED_RESPONSE",
-            `The ${providerName} response did not match the required schema. Issues: ${JSON.stringify(
-                issueSummary,
-            )}`,
-        );
+        if (validation.success) {
+            return validation.data;
+        }
     }
 
-    return validation.data;
+    const validation = request.schema.safeParse(parsed);
+
+    const issueSummary = validation.success
+        ? []
+        : validation.error.issues.map((issue) => ({
+            path: issue.path.join(".") || "(root)",
+            code: issue.code,
+        }));
+
+    throw new AiProviderError(
+        "MALFORMED_RESPONSE",
+        `The ${providerName} response did not match the required schema. Issues: ${JSON.stringify(
+            issueSummary,
+        )}`,
+    );
 }
 
 function getGeminiModel() {
@@ -346,6 +368,11 @@ class OpenAiCompatibleProvider implements AiProvider {
                             },
                         ],
                         temperature: 0,
+                        ...(this.config.name === "Groq"
+                            ? {
+                                max_tokens: 900,
+                            }
+                            : {}),
                         ...(this.config.name === "Groq" &&
                             model.startsWith("openai/gpt-oss-")
                             ? {

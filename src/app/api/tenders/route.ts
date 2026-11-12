@@ -35,6 +35,7 @@ export async function GET() {
         title: true,
         issuerName: true,
         reference: true,
+        sourceType: true,
         deadlineAt: true,
         notes: true,
         status: true,
@@ -92,6 +93,7 @@ export async function POST(request: Request) {
     title: String(formData.get("title") ?? ""),
     issuerName: String(formData.get("issuerName") ?? ""),
     reference: String(formData.get("reference") ?? ""),
+    sourceType: String(formData.get("sourceType") ?? "ACTIVE"),
     deadlineAt: String(formData.get("deadlineAt") ?? ""),
     notes: String(formData.get("notes") ?? ""),
   });
@@ -159,7 +161,7 @@ export async function POST(request: Request) {
   try {
     storageKey = await savePdfFile(pdfResult.buffer);
 
-    const { title, issuerName, reference, deadlineAt, notes } =
+    const { title, issuerName, reference, sourceType, deadlineAt, notes } =
       tenderResult.data;
 
     const tender = await prisma.tender.create({
@@ -168,6 +170,7 @@ export async function POST(request: Request) {
         title,
         issuerName,
         reference: reference || null,
+        sourceType,
         deadlineAt: deadlineAt ? new Date(deadlineAt) : null,
         notes: notes || null,
         status: "DRAFT",
@@ -184,6 +187,7 @@ export async function POST(request: Request) {
         title: true,
         issuerName: true,
         reference: true,
+        sourceType: true,
         deadlineAt: true,
         notes: true,
         status: true,
