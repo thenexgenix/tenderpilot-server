@@ -1,10 +1,16 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { ExtractedRequirement } from "@/lib/ai/schemas";
-
-function normalizeRequirementText(value: string) {
-    return value.replace(/\s+/g, " ").trim().toLowerCase();
-}
+import {
+    normalizeExtractedRequirement,
+    requirementDeduplicationKey,
+} from "@/lib/requirements/normalize-ai-requirement";
+import {
+    consolidateExtractedRequirements,
+    splitCompoundSentenceRequirements,
+    splitCompoundDocumentRequirements,
+} from "@/lib/requirements/consolidate-extracted-requirements";
+import type { AnalysisPage } from "@/lib/ai/chunk-pages";
 
 function getDisplayNumber(displayId: string) {
     const match = /^REQ-(\d+)$/.exec(displayId);
@@ -15,16 +21,21 @@ function getDisplayNumber(displayId: string) {
 export async function saveAiRequirements(
     tenderId: string,
     requirements: ExtractedRequirement[],
+    pages: AnalysisPage[] = [],
 ) {
     const uniqueRequirements = Array.from(
         new Map(
-            requirements.map((requirement) => [
-                [
-                    requirement.page_number,
-                    normalizeRequirementText(requirement.text),
-                ].join(":"),
-                requirement,
-            ]),
+            splitCompoundDocumentRequirements(
+                consolidateExtractedRequirements(
+                    splitCompoundSentenceRequirements(requirements),
+                    pages,
+                ),
+            )
+                .map(normalizeExtractedRequirement)
+                .map((requirement) => [
+                    requirementDeduplicationKey(requirement),
+                    requirement,
+                ]),
         ).values(),
     );
 

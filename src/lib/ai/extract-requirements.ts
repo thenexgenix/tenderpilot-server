@@ -43,13 +43,26 @@ Extraction rules:
 - Use MANDATORY only when the bidder must submit, provide, satisfy, complete,
   or avoid something.
 - Use OPTIONAL only when the document explicitly describes something as optional.
+- If a direct action is required only when a condition applies, keep the
+  condition in the text and mark the required action MANDATORY.
 - Use UNCLEAR for informational facts such as publication dates, meeting dates,
   opening dates, project names, contract metadata, procurement method, contact
   details, locations, and estimated values unless they explicitly create a
   bidder obligation.
 - Never invent or infer missing information.
 - Never merge unrelated items merely to reduce the number of results.
-- Avoid duplicate items, but do not remove distinct conditions.
+- Avoid duplicate items across repeated clauses or pages, but do not remove
+  distinct conditions or technical specifications.
+- Treat a table heading such as "Minimum Specification" as context for every
+  row beneath it. Each technical row is a separate mandatory requirement.
+- Do not emit section headings or list-introducing lead-ins as requirements.
+- Join wrapped PDF lines into the complete sentence before writing text or quote.
+
+Before returning JSON, perform a completeness sweep for: bidder eligibility and
+experience, required certificates and tax documents, turnover or financial
+capacity, equipment quantities and minimum specifications, implementation and
+testing, warranty, security, submission rules, evaluation criteria,
+disqualification rules, deadlines, and contact details.
 
 Use only these category values:
 DEADLINE
@@ -88,6 +101,7 @@ export function buildExtractionUserPrompt(
         "Do not summarize the chunk.",
         "Return every distinct source-grounded requirement or tender fact.",
         "Inspect paragraphs, bullets, tables, headings, dates, and contact blocks.",
+        "Pay special attention to eligibility, experience, certificates, tax/VAT, turnover, equipment quantities/specifications, implementation schedule, testing/commissioning, warranty, security, and disqualification clauses.",
         "",
         "DOCUMENT TEXT:",
         chunk.text,

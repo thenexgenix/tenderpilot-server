@@ -341,7 +341,7 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+      <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3">
           <h2 className="text-lg font-bold text-[#0f2a47]">{title}</h2>
           <button

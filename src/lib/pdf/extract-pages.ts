@@ -45,8 +45,50 @@ function isPasswordError(error: unknown) {
     );
 }
 
-function normalizePageText(value: string) {
-    return value.replace(/\s+/g, " ").trim();
+type PdfTextItem = {
+    str?: string;
+    transform?: number[];
+};
+
+function normalizePageText(items: PdfTextItem[]) {
+    const rows: Array<{
+        y: number;
+        items: Array<{ x: number; text: string }>;
+    }> = [];
+
+    for (const item of items) {
+        const text = item.str?.trim() ?? "";
+        const x = item.transform?.[4] ?? 0;
+        const y = item.transform?.[5] ?? 0;
+
+        if (!text) {
+            continue;
+        }
+
+        let row = rows.find((candidate) => Math.abs(candidate.y - y) < 0.5);
+
+        if (!row) {
+            row = { y, items: [] };
+            rows.push(row);
+        }
+
+        row.items.push({ x, text });
+    }
+
+    return rows
+        .sort((left, right) => right.y - left.y)
+        .map((row) =>
+            row.items
+                .sort((left, right) => left.x - right.x)
+                .map((item) => item.text)
+                .join(" ")
+                .replace(/\s+([,.;:])/g, "$1")
+                .trim(),
+        )
+        .join("\n")
+        .replace(/[ \t]+\n/g, "\n")
+        .replace(/\n[ \t]+/g, "\n")
+        .trim();
 }
 
 export async function extractPdfPages(
@@ -99,15 +141,19 @@ export async function extractPdfPages(
                 const textContent = await page.getTextContent();
 
                 pageText = normalizePageText(
-                    textContent.items
-                        .map((item) => {
-                            if ("str" in item && typeof item.str === "string") {
-                                return item.str;
-                            }
-
-                            return "";
-                        })
-                        .join(" "),
+                    textContent.items.flatMap((item) =>
+                        "str" in item && typeof item.str === "string"
+                            ? [
+                                {
+                                    str: item.str,
+                                    transform:
+                                        "transform" in item
+                                            ? item.transform
+                                            : undefined,
+                                },
+                            ]
+                            : [],
+                    ),
                 );
             } catch (error) {
                 throw new PdfExtractionError(

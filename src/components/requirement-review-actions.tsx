@@ -177,10 +177,10 @@ export function RequirementReviewActions({
                 </p>
             )}
 
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-nowrap">
                 <Button
                     type="button"
-                    className="min-h-9 px-3 text-xs"
+                    className="h-9 min-h-9 min-w-0 flex-1 px-2 text-xs"
                     onClick={() =>
                         void saveReview("CONFIRM", {
                             checkNote: requirement.checkNote,
@@ -194,7 +194,7 @@ export function RequirementReviewActions({
                 <Button
                     type="button"
                     variant="secondary"
-                    className="min-h-9 px-3 text-xs"
+                    className="h-9 min-h-9 min-w-0 flex-1 px-2 text-xs"
                     onClick={openEdit}
                     disabled={isSaving}
                 >
@@ -204,7 +204,7 @@ export function RequirementReviewActions({
                 <Button
                     type="button"
                     variant="danger"
-                    className="min-h-9 px-3 text-xs"
+                    className="h-9 min-h-9 min-w-0 flex-1 px-2 text-xs"
                     onClick={openReject}
                     disabled={isSaving}
                 >

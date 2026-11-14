@@ -198,6 +198,7 @@ export async function processTenderPdf(
             await saveAiRequirements(
                 tender.id,
                 analysis.requirements,
+                readablePages,
             );
 
         const verification =
