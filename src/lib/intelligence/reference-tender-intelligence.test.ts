@@ -69,6 +69,9 @@ describe("buildTenderIntelligence", () => {
 
         expect(result.referenceCount).toBe(2);
         expect(result.analyzedReferenceCount).toBe(2);
+        expect(result.procurementType).toBe("GENERAL");
+        expect(result.references[0].selected).toBe(true);
+        expect(result.references[0].relevanceScore).toBeGreaterThan(0);
         expect(result.benchmarkThemes).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
@@ -90,6 +93,15 @@ describe("buildTenderIntelligence", () => {
                 expect.objectContaining({ displayId: "R-02" }),
             ]),
         );
+        expect(result.coverage).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    displayId: "R-01",
+                    priority: "HIGH",
+                    status: "BENCHMARK_SUPPORTED",
+                }),
+            ]),
+        );
         expect(result.disclaimer).toMatch(/do not prove/i);
     });
 
@@ -100,5 +112,35 @@ describe("buildTenderIntelligence", () => {
         expect(result.benchmarkThemes).toHaveLength(0);
         expect(result.winThemes.length).toBeGreaterThan(0);
         expect(result.evidenceGaps).toHaveLength(1);
+    });
+
+    it("does not turn tender metadata into company evidence gaps", () => {
+        const result = buildTenderIntelligence(
+            {
+                id: "metadata-only",
+                title: "Solar water tender",
+                requirements: [
+                    {
+                        displayId: "R-03",
+                        category: "FINANCIAL",
+                        text: "The estimated project budget is BDT 1,80,00,000.",
+                        obligation: "UNCLEAR",
+                        verification: "VERIFIED",
+                        pageNumber: 1,
+                    },
+                    {
+                        displayId: "R-04",
+                        category: "EVALUATION_CRITERIA",
+                        text: "The evaluation criteria include Technical Compliance (30%).",
+                        obligation: "UNCLEAR",
+                        verification: "VERIFIED",
+                        pageNumber: 4,
+                    },
+                ],
+            },
+            [],
+        );
+
+        expect(result.evidenceGaps).toHaveLength(0);
     });
 });

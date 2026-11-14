@@ -199,6 +199,7 @@ export async function POST(
                 issuerName: tender.issuerName,
                 reference: tender.reference,
             },
+            requirements: tender.requirements,
             sections: tender.draft,
             strategy,
         });

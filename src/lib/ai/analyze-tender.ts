@@ -9,6 +9,9 @@ import {
 import {
     extractRequirementsFromChunk,
 } from "./extract-requirements";
+import {
+    extractDeterministicRequirements,
+} from "./deterministic-requirements";
 import type {
     ExtractedRequirement,
 } from "./schemas";
@@ -59,6 +62,23 @@ export async function analyzeTenderPages(
             throw error;
         }
     }
+
+    // Keep a source-grounded backstop for high-value numeric and legal
+    // requirements that models sometimes miss in dense tables or lists.
+    // Do not recover from a failed chunk: the tender is already marked for
+    // attention and the failed source range must remain visible to the user.
+    const failedPageNumbers = new Set(
+        failedChunks.flatMap(
+            (chunkNumber) =>
+                chunks.find((chunk) => chunk.chunkNumber === chunkNumber)
+                    ?.pageNumbers ?? [],
+        ),
+    );
+    requirements.push(
+        ...extractDeterministicRequirements(
+            pages.filter((page) => !failedPageNumbers.has(page.pageNumber)),
+        ),
+    );
 
     return {
         requirements,

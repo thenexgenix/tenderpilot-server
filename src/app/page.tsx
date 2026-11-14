@@ -835,8 +835,8 @@ export default function LandingPage() {
       </section>
       {/* Dark Navy Enterprise Feature Banner */}
       <section className="relative overflow-hidden border-b border-violet-950/40 bg-[linear-gradient(135deg,#121936_0%,#332873_56%,#0e6079_100%)] py-14 text-white">
-  <div className="pointer-events-none absolute -left-24 top-0 h-56 w-56 rounded-full bg-violet-400/20 blur-3xl" />
-  <div className="pointer-events-none absolute -right-24 bottom-0 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute -left-24 top-0 h-56 w-56 rounded-full bg-violet-400/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-24 bottom-0 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-3 text-center sm:grid-cols-4 sm:gap-6">
             <div className="flex flex-col items-center p-3">
@@ -920,7 +920,7 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
-        <SectionWave fill="#effaff" />
+        <SectionWave fill="#000080"/>
       </section>
 
       {/* Enterprise Capabilities & Deep Navy Contrast Grid */}

@@ -29,6 +29,7 @@ const factDefinitions = [
         label: "Deadline",
         categories: [],
         patterns: [
+            /\bsubmission\s+deadline\b/i,
             /\b(tender\s+)?submission\s+deadline\s+is\b/i,
             /\bdeadline\s+for\s+submission\s+is\b/i,
             /\blast\s+date\s+for\s+submission\s+is\b/i,
@@ -49,19 +50,18 @@ const factDefinitions = [
         patterns: [
             /\bbid security\b/i,
             /\btender security\b/i,
+            /\bperformance security\b/i,
         ],
     },
     {
         label: "Submission method",
-        categories: [
-            "SUBMISSION_METHOD",
-            "SUBMISSION",
-        ],
+        categories: [],
         patterns: [
             /\be[- ]tender\b/i,
             /\bonline submission\b/i,
             /\bphysical submission\b/i,
             /\bsealed envelope\b/i,
+            /\btechnical and financial proposals\b/i,
         ],
     },
     {
@@ -165,7 +165,8 @@ export function KeyFactsPanel({
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 {factDefinitions.map((fact) => {
-                    const requirement = requirements.find((item) => {
+                    const requirement = requirements
+                        .map((item) => {
                         const normalizedCategory =
                             normalizeCategory(item.category);
 
@@ -176,8 +177,35 @@ export function KeyFactsPanel({
                             pattern.test(item.text),
                         );
 
-                        return categoryMatches || textMatches;
-                    });
+                        if (!categoryMatches && !textMatches) {
+                            return { item, score: -1 };
+                        }
+
+                        let score = categoryMatches ? 1 : 0;
+
+                        if (textMatches) {
+                            score += 2;
+                        }
+
+                        if (/include:|following requirements?:?$/i.test(item.text)) {
+                            score -= 5;
+                        }
+
+                        if (fact.label === "Submission method" && /sealed envelope|technical and financial proposals/i.test(item.text)) {
+                            score += 5;
+                        }
+
+                        if (fact.label === "Contact" && /email|telephone|phone|contact person/i.test(item.text)) {
+                            score += 4;
+                        }
+
+                        if (fact.label === "Deadline" && /\b\d{1,2}[:.]\d{2}\b|\b\d{4}\b/i.test(item.text)) {
+                            score += 2;
+                        }
+
+                        return { item, score };
+                    })
+                        .sort((left, right) => right.score - left.score)[0]?.item;
 
                     const hasSource =
                         requirement?.pageNumber !== null &&

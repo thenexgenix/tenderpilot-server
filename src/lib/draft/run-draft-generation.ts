@@ -7,6 +7,10 @@ import {
     type GeneratedDraft,
 } from "@/lib/ai/generate-draft";
 import { prisma } from "@/lib/prisma";
+import {
+    buildTenderIntelligence,
+    type IntelligenceReference,
+} from "@/lib/intelligence/reference-tender-intelligence";
 
 export class DraftGenerationError extends Error {
     constructor(
@@ -31,6 +35,7 @@ async function getDraftInput(
         select: {
             id: true,
             title: true,
+            sourceType: true,
             issuerName: true,
             reference: true,
             deadlineAt: true,
@@ -66,7 +71,40 @@ async function getDraftInput(
         );
     }
 
-    return tender;
+    const references = (await prisma.tender.findMany({
+        where: {
+            ownerId,
+            deletedAt: null,
+            sourceType: {
+                in: ["PUBLIC_REFERENCE", "SYNTHETIC_REFERENCE"],
+            },
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+            id: true,
+            title: true,
+            issuerName: true,
+            sourceType: true,
+            requirements: {
+                orderBy: { displayId: "asc" },
+                select: {
+                    displayId: true,
+                    category: true,
+                    text: true,
+                    obligation: true,
+                    verification: true,
+                    pageNumber: true,
+                },
+            },
+        },
+    })) as IntelligenceReference[];
+
+    const strategy =
+        tender.sourceType === "ACTIVE"
+            ? buildTenderIntelligence(tender, references)
+            : undefined;
+
+    return { tender, strategy };
 }
 
 function warningsForSection(
@@ -82,7 +120,7 @@ export async function runTenderDraftGeneration(
     tenderId: string,
     ownerId: string,
 ) {
-    const tender = await getDraftInput(tenderId, ownerId);
+    const { tender, strategy } = await getDraftInput(tenderId, ownerId);
 
     await prisma.tender.update({
         where: {
@@ -106,6 +144,14 @@ export async function runTenderDraftGeneration(
                     notes: tender.notes,
                 },
                 requirements: tender.requirements,
+                strategy: strategy
+                    ? {
+                          procurementType: strategy.procurementType,
+                          winThemes: strategy.winThemes,
+                          prioritySignals: strategy.prioritySignals,
+                          evidenceGaps: strategy.evidenceGaps,
+                      }
+                    : undefined,
             },
             createAiProvider(),
         );
