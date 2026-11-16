@@ -16,20 +16,14 @@ export type PdfValidationResult =
       sizeBytes: number;
     };
 
-export async function validatePdfUpload(
-  value: FormDataEntryValue | null,
-): Promise<PdfValidationResult> {
-  if (!(value instanceof File)) {
-    return {
-      ok: false,
-      code: "PDF_REQUIRED",
-      message: "Please select a PDF file.",
-    };
-  }
+export function validatePdfBuffer(
+  buffer: Buffer,
+  originalName: string,
+  mimeType = "application/pdf",
+): PdfValidationResult {
+  const normalizedName = originalName.trim();
 
-  const originalName = value.name.trim();
-
-  if (!originalName.toLowerCase().endsWith(".pdf")) {
+  if (!normalizedName.toLowerCase().endsWith(".pdf")) {
     return {
       ok: false,
       code: "INVALID_EXTENSION",
@@ -37,7 +31,7 @@ export async function validatePdfUpload(
     };
   }
 
-  if (value.size === 0) {
+  if (buffer.length === 0) {
     return {
       ok: false,
       code: "EMPTY_FILE",
@@ -45,7 +39,7 @@ export async function validatePdfUpload(
     };
   }
 
-  if (value.size > MAX_PDF_SIZE_BYTES) {
+  if (buffer.length > MAX_PDF_SIZE_BYTES) {
     return {
       ok: false,
       code: "FILE_TOO_LARGE",
@@ -53,7 +47,6 @@ export async function validatePdfUpload(
     };
   }
 
-  const buffer = Buffer.from(await value.arrayBuffer());
   const signature = buffer.subarray(0, 5).toString("ascii");
 
   if (signature !== "%PDF-") {
@@ -67,8 +60,24 @@ export async function validatePdfUpload(
   return {
     ok: true,
     buffer,
-    originalName,
-    mimeType: value.type || "application/pdf",
+    originalName: normalizedName,
+    mimeType: mimeType || "application/pdf",
     sizeBytes: buffer.length,
   };
+}
+
+export async function validatePdfUpload(
+  value: FormDataEntryValue | null,
+): Promise<PdfValidationResult> {
+  if (!(value instanceof File)) {
+    return {
+      ok: false,
+      code: "PDF_REQUIRED",
+      message: "Please select a PDF file.",
+    };
+  }
+
+  const buffer = Buffer.from(await value.arrayBuffer());
+
+  return validatePdfBuffer(buffer, value.name, value.type || "application/pdf");
 }

@@ -77,24 +77,29 @@ For a clean shutdown:
 docker compose down
 ```
 
-Uploaded PDFs are stored in `./storage`. PostgreSQL data is stored in the named `tenderpilot-postgres-data` volume.
+For local development without Vercel Blob credentials, uploaded PDFs are stored in
+`./storage`. In the deployed Vercel project, PDFs are uploaded directly to the
+connected private Vercel Blob store. PostgreSQL data is stored in the named
+`tenderpilot-postgres-data` volume when using Docker Compose.
 
 ## Environment variables
 
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `AUTH_SECRET` | Secret used to sign authentication sessions; use a long random value |
-| `AI_PROVIDER_CHAIN` | Comma-separated provider order, for example `gemini,groq,openrouter` |
-| `AI_PROVIDER` | Single-provider fallback when `AI_PROVIDER_CHAIN` is not set |
-| `AI_MODEL` | Gemini model name |
-| `GEMINI_API_KEY` | Gemini API key |
-| `GROQ_API_KEY` | Groq API key |
-| `GROQ_MODEL` | Groq model name |
-| `OPENROUTER_API_KEY` | OpenRouter API key |
-| `OPENROUTER_MODEL` | OpenRouter model name |
-| `STORAGE_DIR` | Private server-side PDF storage directory |
-| `RUN_REAL_AI_TEST` | Set to `1` only when intentionally running the opt-in real-provider test |
+| Variable                  | Purpose                                                                                 |
+| ------------------------- | --------------------------------------------------------------------------------------- |
+| `DATABASE_URL`            | PostgreSQL connection string                                                            |
+| `AUTH_SECRET`             | Secret used to sign authentication sessions; use a long random value                    |
+| `AI_PROVIDER_CHAIN`       | Comma-separated provider order, for example `gemini,groq,openrouter`                    |
+| `AI_PROVIDER`             | Single-provider fallback when `AI_PROVIDER_CHAIN` is not set                            |
+| `AI_MODEL`                | Gemini model name                                                                       |
+| `GEMINI_API_KEY`          | Gemini API key                                                                          |
+| `GROQ_API_KEY`            | Groq API key                                                                            |
+| `GROQ_MODEL`              | Groq model name                                                                         |
+| `OPENROUTER_API_KEY`      | OpenRouter API key                                                                      |
+| `OPENROUTER_MODEL`        | OpenRouter model name                                                                   |
+| `STORAGE_DIR`             | Local private PDF storage directory used only without Blob configuration                |
+| `BLOB_STORE_ID`           | Vercel Blob store identifier, injected by the Vercel project connection                 |
+| `BLOB_WEBHOOK_PUBLIC_KEY` | Vercel Blob upload callback verification key, injected by the Vercel project connection |
+| `RUN_REAL_AI_TEST`        | Set to `1` only when intentionally running the opt-in real-provider test                |
 
 Never commit `.env`, provider keys, uploaded PDFs, or the local `storage/` directory.
 
@@ -154,7 +159,7 @@ The reference comparison feature identifies structural patterns. It does not inf
 - Company profiles, past-performance libraries, and award outcomes are not yet separate first-class records. Company facts must currently be supplied by the user through verified notes and placeholders.
 - Benchmark tenders are not evidence of company experience and must not be presented as such.
 - AI-generated content remains subject to human review and may require edits for tone, strategy, and factual completeness.
-- Local file storage is suitable for development and demonstration. Production deployment should use private object storage, malware scanning, encrypted backups, and a shared rate-limit store.
+- Local file storage is used only as a development fallback. The production deployment uses private object storage, while malware scanning, encrypted backups, and a shared rate-limit store remain recommended before handling real customer data.
 - The production build currently reports non-blocking Turbopack warnings about dynamic filesystem tracing in `src/lib/storage.ts`.
 
 ## Security notes
