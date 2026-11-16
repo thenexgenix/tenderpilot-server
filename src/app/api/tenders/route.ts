@@ -3,8 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/current-user";
 import { createTenderSchema } from "@/lib/validation/tender";
 import { createHash } from "node:crypto";
-import { deleteStoredFile, savePdfFile } from "@/lib/storage";
-import { validatePdfUpload } from "@/lib/validation/pdf";
+import {
+  deleteStoredFile,
+  isOwnedBlobStorageKey,
+  readStoredFile,
+  savePdfFile,
+} from "@/lib/storage";
+import { validatePdfBuffer, validatePdfUpload } from "@/lib/validation/pdf";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -111,9 +116,64 @@ export async function POST(request: Request) {
     );
   }
 
-  const pdfResult = await validatePdfUpload(formData.get("file"));
+  const requestedStorageKey = formData.get("fileStorageKey");
+  const blobStorageKey =
+    typeof requestedStorageKey === "string" && requestedStorageKey
+      ? requestedStorageKey
+      : null;
+
+  let pdfResult: Awaited<ReturnType<typeof validatePdfUpload>>;
+
+  if (blobStorageKey) {
+    if (!isOwnedBlobStorageKey(blobStorageKey, user.id)) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "INVALID_STORAGE_KEY",
+            message: "The uploaded PDF is not valid for this account.",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    try {
+      const storedBuffer = await readStoredFile(blobStorageKey);
+      pdfResult = validatePdfBuffer(
+        storedBuffer,
+        String(formData.get("fileOriginalName") ?? "tender.pdf"),
+        String(formData.get("fileMimeType") ?? "application/pdf"),
+      );
+    } catch {
+      try {
+        await deleteStoredFile(blobStorageKey);
+      } catch {
+        // Keep the original storage read response.
+      }
+
+      return NextResponse.json(
+        {
+          error: {
+            code: "PDF_STORAGE_ERROR",
+            message: "Unable to read the uploaded tender PDF.",
+          },
+        },
+        { status: 500 },
+      );
+    }
+  } else {
+    pdfResult = await validatePdfUpload(formData.get("file"));
+  }
 
   if (!pdfResult.ok) {
+    if (blobStorageKey) {
+      try {
+        await deleteStoredFile(blobStorageKey);
+      } catch {
+        // Keep the original validation response.
+      }
+    }
+
     return NextResponse.json(
       {
         error: {
@@ -131,35 +191,40 @@ export async function POST(request: Request) {
     .update(pdfResult.buffer)
     .digest("hex");
 
-  const duplicateTender = await prisma.tender.findFirst({
-    where: {
-      ownerId: user.id,
-      fileSha256,
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      title: true,
-    },
-  });
-
-  if (duplicateTender && !allowDuplicate) {
-    return NextResponse.json(
-      {
-        error: {
-          code: "DUPLICATE_FILE",
-          message: `This PDF was already uploaded as "${duplicateTender.title}".`,
-          existingTenderId: duplicateTender.id,
-        },
-      },
-      { status: 409 },
-    );
-  }
-
-  let storageKey: string | null = null;
+  let storageKey: string | null = blobStorageKey;
 
   try {
-    storageKey = await savePdfFile(pdfResult.buffer);
+    const duplicateTender = await prisma.tender.findFirst({
+      where: {
+        ownerId: user.id,
+        fileSha256,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        title: true,
+      },
+    });
+
+    if (duplicateTender && !allowDuplicate) {
+      if (storageKey) {
+        await deleteStoredFile(storageKey);
+        storageKey = null;
+      }
+
+      return NextResponse.json(
+        {
+          error: {
+            code: "DUPLICATE_FILE",
+            message: `This PDF was already uploaded as "${duplicateTender.title}".`,
+            existingTenderId: duplicateTender.id,
+          },
+        },
+        { status: 409 },
+      );
+    }
+
+    storageKey ??= await savePdfFile(pdfResult.buffer);
 
     const { title, issuerName, reference, sourceType, deadlineAt, notes } =
       tenderResult.data;

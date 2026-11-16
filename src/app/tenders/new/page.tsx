@@ -1,5 +1,6 @@
 "use client";
 
+import { uploadPresigned } from "@vercel/blob/client";
 import { useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -26,6 +27,15 @@ type CreateTenderResponse = {
   };
 };
 
+type UploadedTenderFile = {
+  pathname: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+};
+
+const MAX_PDF_SIZE_BYTES = 20 * 1024 * 1024;
+
 export default function NewTenderPage() {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -35,6 +45,8 @@ export default function NewTenderPage() {
   const [formError, setFormError] = useState("");
   const [duplicateWarning, setDuplicateWarning] = useState("");
   const [allowDuplicate, setAllowDuplicate] = useState(false);
+  const [uploadedTenderFile, setUploadedTenderFile] =
+    useState<UploadedTenderFile | null>(null);
 
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<FieldName, string>>
@@ -53,14 +65,71 @@ export default function NewTenderPage() {
     formData.set("allowDuplicate", String(permitDuplicate));
 
     try {
+      const file = formData.get("file");
+
+      if (!(file instanceof File) || file.size === 0) {
+        throw new Error("Please select a PDF file.");
+      }
+
+      if (file.size > MAX_PDF_SIZE_BYTES) {
+        throw new Error("PDF files must be 20 MB or smaller.");
+      }
+
+      let uploadedFile = uploadedTenderFile;
+
+      if (!uploadedFile) {
+        const initResponse = await fetch("/api/uploads/tender/init", {
+          method: "POST",
+        });
+        const initResult = (await initResponse.json()) as {
+          data?: { pathname: string };
+          error?: { message?: string };
+        };
+
+        if (!initResponse.ok || !initResult.data?.pathname) {
+          throw new Error(
+            initResult.error?.message ??
+              "Unable to prepare the PDF upload. Please try again.",
+          );
+        }
+
+        const blob = await uploadPresigned(initResult.data.pathname, file, {
+          access: "private",
+          handleUploadUrl: "/api/uploads/tender",
+        });
+
+        uploadedFile = {
+          pathname: blob.pathname,
+          originalName: file.name,
+          mimeType: file.type || "application/pdf",
+          sizeBytes: file.size,
+        };
+
+        setUploadedTenderFile(uploadedFile);
+      }
+
+      const tenderFormData = new FormData();
+
+      for (const [key, value] of formData.entries()) {
+        if (key !== "file") {
+          tenderFormData.append(key, value);
+        }
+      }
+
+      tenderFormData.set("fileStorageKey", uploadedFile.pathname);
+      tenderFormData.set("fileOriginalName", uploadedFile.originalName);
+      tenderFormData.set("fileMimeType", uploadedFile.mimeType);
+      tenderFormData.set("fileSizeBytes", String(uploadedFile.sizeBytes));
+
       const response = await fetch("/api/tenders", {
         method: "POST",
-        body: formData,
+        body: tenderFormData,
       });
 
       const result = (await response.json()) as CreateTenderResponse;
 
       if (response.status === 409 && result.error?.code === "DUPLICATE_FILE") {
+        setUploadedTenderFile(null);
         setDuplicateWarning(
           result.error.message ??
             "This PDF was already uploaded for your account.",
@@ -69,6 +138,7 @@ export default function NewTenderPage() {
       }
 
       if (!response.ok) {
+        setUploadedTenderFile(null);
         const fields = result.error?.fields ?? {};
 
         setFieldErrors({
@@ -94,14 +164,20 @@ export default function NewTenderPage() {
       form.reset();
       setFileName("");
       setAllowDuplicate(false);
+      setUploadedTenderFile(null);
       setDuplicateWarning("");
       setFormError("");
       setFieldErrors({});
 
       router.push(`/tenders/${result.data.id}?startProcessing=1`);
       router.refresh();
-    } catch {
-      setFormError("Unable to connect to the server. Please try again.");
+    } catch (error) {
+      setUploadedTenderFile(null);
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Unable to upload the tender PDF. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -115,6 +191,7 @@ export default function NewTenderPage() {
 
   function handleFileChange(file: File | undefined) {
     setFileName(file?.name ?? "");
+    setUploadedTenderFile(null);
     setAllowDuplicate(false);
     setDuplicateWarning("");
     setFormError("");
