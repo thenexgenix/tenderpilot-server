@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { processTenderPdf } from "@/lib/pdf/process-tender";
@@ -76,8 +76,15 @@ export async function POST(
         },
     });
 
-    void processTenderPdf(tender.id, user.id).catch(() => {
-        // processTenderPdf records the failure status in the database.
+    after(async () => {
+        try {
+            await processTenderPdf(tender.id, user.id);
+        } catch (error) {
+            console.error("[TENDER_PROCESSING_FAILED]", {
+                tenderId: tender.id,
+                error,
+            });
+        }
     });
 
     return NextResponse.json(
