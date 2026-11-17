@@ -108,12 +108,12 @@ export async function extractPdfPages(
 
         pdf = await loadingTask.promise;
     } catch (error) {
-        console.error("[PDF_EXTRACTION_FAILED]", {
-            name: error instanceof Error ? error.name : typeof error,
-            message: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-            bufferLength: buffer.length,
-        });
+        // console.error("[PDF_EXTRACTION_FAILED]", {
+        //     name: error instanceof Error ? error.name : typeof error,
+        //     message: error instanceof Error ? error.message : String(error),
+        //     stack: error instanceof Error ? error.stack : undefined,
+        //     bufferLength: buffer.length,
+        // });
         if (isPasswordError(error)) {
             throw new PdfExtractionError(
                 "PASSWORD_PROTECTED_PDF",
